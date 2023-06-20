@@ -22,6 +22,16 @@ def produccionCMV(x):
     else:
         return x["Cant_Kgrs"]
 
+def cmv(x):
+    if x["Clase de movimiento"] in ["101","102"]:
+        return "Otras Entregas"
+    elif x["Clase de movimiento"] in ["261","262"]:
+        return "Consumos"
+    elif x["Clase de movimiento"] in ["531","532"]:
+        return "Subproductos"
+    else:
+        return "No encontrado"
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Esta función determina qué reportes descargar")
     parser.add_argument("-c",dest="consumo",action="store_true",help="Descarga reportes de Consumo (MB51, COOISPI)")
@@ -100,6 +110,21 @@ def sapConnection(cSap):
     SapGuiAuto = win32com.client.GetObject("SAPGUI")
     application = SapGuiAuto.GetScriptingEngine
 
+    try:
+        connection = application.Children(0)
+
+        i=0
+        print("Cerrando {} sesion(es) activa(s)".format(int(connection.children.count)))
+        while int(connection.children.count) > 0 and i <5:
+            session = connection.Children(0)
+            session.findbyid("wnd[0]").close()
+            session.findById("wnd[1]/usr/btnSPOP-OPTION1").press()
+            i=i+1
+                
+    except Exception as e:
+        print(e)
+        pass
+        
     connection = application.OpenConnection("RISE - ERP Produccion")
     session = connection.Children(0)
     session.findById("wnd[0]").maximize()
@@ -877,28 +902,25 @@ ruta=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes
 def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     tiempo=(y,m)
     
-    colsComp=["Orden","Centro","Almacén","Material","Texto breve material",
+    colsComp=["Orden","Centro","Material","Texto breve material",
           "Unidad medida base (=EINHEIT)","Cantidad necesaria (EINHEIT)",
           "Cantidad tomada (EINHEIT)","Valor de la toma (WAERS)","Clase de movimiento",
           "Precio/MonL (WAERS)"]
 
-    convComp={"Orden":str,"Centro":str,"Almacén":str,"Pos.lista componentes":str,"Material":str,
-          "Clase de movimiento":str}
+    convComp={"Orden":str,"Centro":str,"Material":str,
+              "Clase de movimiento":str}
     
-    colsCab=["Centro","Orden","Número material","Texto breve material","Clase de orden",
-         "Planificador nec.","Resp.ctrl.producción","Cantidad orden (GMEIN)","Cantidad entregada (GMEIN)",
-         "Unidad de medida (=GMEIN)","Status de sistema","Cantidad notificada (GMEIN)",
-         "Ctd.confirmada (GMEIN)","Versión fabricación","Cantidad notificada (CONF_REM_UNIT)",
-         "Difer.confirm.proc.","División","Fecha liberac.real"]
+    colsCab=["Centro","Orden","Número material","Texto breve material",
+         "Cantidad orden (GMEIN)","Cantidad entregada (GMEIN)",
+         "Unidad de medida (=GMEIN)","Status de sistema","Fecha liberac.real"]
 
     convCab={"Centro":str,"Orden":str,"Número material":str,"Difer.confirm.proc.":str,"División":str}
     
-    colsAdi=["Orden","Centro","Almacén","Material","Texto de material",
-             "Unidad medida base (=MEINS)","Ctd.en UM base (MEINS)","Importe ML (WAERS)",
-             "Clase de movimiento"]
+    colsAdi=["Orden","Centro","Material","Texto de material",
+         "Unidad medida base (=MEINS)","Ctd.en UM base (MEINS)","Importe ML (WAERS)",
+         "Clase de movimiento"]
 
-    convAdi={"Orden":str,"Centro":str,"Almacén":str,"Pos.documento mat.":str,"Material":str,
-             "Clase de movimiento":str}
+    convAdi={"Orden":str,"Centro":str,"Material":str,"Clase de movimiento":str}
 
     colsMb51=["Centro","Orden","Material","Ctd.en UM entrada","Importe ML","Clase de movimiento"]
     convMb51={"Centro":str,"Orden":str,"Material":str,"Clase de movimiento":str}
@@ -909,70 +931,124 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     dfComp=pd.read_excel(ruta+"\{}\Consumos\{}. Componentes.xlsx".format(tiempo[0],tiempo[1]),usecols=colsComp,converters=convComp)
     dfAdi=pd.read_excel(ruta+"\{}\Consumos\{}. Adicionales.xlsx".format(tiempo[0],tiempo[1]),usecols=colsAdi,converters=convAdi)
     dfCab=pd.read_excel(ruta+"\{}\Consumos\{}. Cabeceras de orden.xlsx".format(tiempo[0],tiempo[1]),usecols=colsCab,converters=convCab)
-
+    
     dfAdi=dfAdi.rename(columns={"Unidad medida base (=MEINS)":"Unidad medida base (=EINHEIT)",
                      'Ctd.en UM base (MEINS)':'Cantidad tomada (EINHEIT)',
                      "Importe ML (WAERS)":'Valor de la toma (WAERS)',
                     "Texto de material":"Texto breve material"})
-
+    
+    dfAdi["Cantidad necesaria (EINHEIT)"]=0
     dfAdi["Precio/MonL (WAERS)"]=dfAdi["Valor de la toma (WAERS)"].divide(dfAdi["Cantidad tomada (EINHEIT)"],fill_value=0)
-
+    dfAdi["Precio/MonL (WAERS)"].replace([np.inf, -np.inf], 0, inplace=True)
     dfComp=pd.concat([dfComp,dfAdi],sort=False)
     del dfAdi
 
-    dfComp["Almacén"].fillna("No encontrado",inplace=True)
-    dfComp["Cantidad necesaria (EINHEIT)"].fillna(0,inplace=True)
-
+    dfComp["Clase"]=dfComp.apply(cmv,axis=1)
     dfCab["Status"]=dfCab["Status de sistema"].str[:4]
 
     dfCab=dfCab.rename(columns={"Cantidad orden (GMEIN)":"Cantidad Plan PT","Cantidad entregada (GMEIN)":"Cantidad Real PT",
                                'Número material':"Receta",'Texto breve material':"Desc. Receta"})
+    
+    temp=dfCab[["Centro","Orden","Receta"]].copy()
+    temp=temp.rename(columns={"Receta":"Material"})
+    temp["Cab"]="Cab"
+    temp["Clase de movimiento"]="101"
 
-    dfCab=dfCab[['Centro', 'Orden', 'Receta', 'Desc. Receta', 'Cantidad Plan PT',
-           'Cantidad Real PT', 'División', 'Fecha liberac.real', 'Status']]
+    temp2=temp.copy()
+    temp2["Clase de movimiento"]="102"
+    temp=pd.concat([temp,temp2])
+    del temp2
 
-    dfCab["División"].fillna("No encontrado",inplace=True)
+    if dfComp.merge(temp,on=["Centro","Orden","Material","Clase de movimiento"],how="left").shape[0]!=dfComp.shape[0]:
+        raise Exception("Temp inserta columnas")
+
+    dfComp=dfComp.merge(temp,on=["Centro","Orden","Material","Clase de movimiento"],how="left")
+
+    dfComp=dfComp[dfComp["Cab"].isna()]
+    del dfComp["Cab"]
+
+    dfMb51=pd.read_excel(ruta+"\{}\Consumos\{}. MB51 (Consumos).xlsx".format(tiempo[0],tiempo[1]),usecols=colsMb51+["Unidad medida base"],converters=convMb51)
+    dfMb51=dfMb51.groupby(["Orden","Centro","Material","Clase de movimiento","Unidad medida base"]).sum().reset_index()
+    if dfMb51.merge(temp,on=["Centro","Orden","Material","Clase de movimiento"],how="left").shape[0]!=dfMb51.shape[0]:
+        raise Exception("Temp inserta columnas")
+
+    dfMb51=dfMb51.merge(temp,on=["Centro","Orden","Material","Clase de movimiento"],how="left")
+    dfMb51=dfMb51[~dfMb51["Cab"].isna()]
+    del dfMb51["Cab"]
+
+    temp=dfCab.copy()
+
+    temp=temp.rename(columns={"Receta":"Material","Desc. Receta":'Texto breve material',
+                             "Unidad de medida (=GMEIN)":'Unidad medida base (=EINHEIT)',
+                             "Cantidad Plan PT":'Cantidad necesaria (EINHEIT)',
+                              "Cantidad Real PT":'Cantidad tomada (EINHEIT)'})
+
+    temp["Clase de movimiento"]="101"
+    del temp["Status de sistema"]
+    del temp["Status"]
+    del temp["Fecha liberac.real"]
+
+    temp["Valor de la toma (WAERS)"]=0.0
+    temp["Precio/MonL (WAERS)"]=0.0
+
+    dfMb51["Clase"]="Cabecera"
+
+    dfMb51=dfMb51.rename(columns={"Importe ML":"Valor de la toma (WAERS)",
+                          "Ctd.en UM entrada":"Cantidad tomada (EINHEIT)",
+                          "Unidad medida base":"Unidad medida base (=EINHEIT)"})
+
+    dfMb51["Precio/MonL (WAERS)"]=dfMb51["Valor de la toma (WAERS)"].divide(dfMb51["Cantidad tomada (EINHEIT)"],fill_value=0)
+    dfMb51["Precio/MonL (WAERS)"].replace([np.inf, -np.inf], 0, inplace=True)
+
+    dfMb51["Cantidad necesaria (EINHEIT)"]=dfMb51["Cantidad tomada (EINHEIT)"]
+    dfMb51=dfMb51.merge(temp[["Material","Texto breve material"]].drop_duplicates(),on="Material",how="left")
+    
+    dfComp=pd.concat([dfComp,dfMb51],sort=False)
+    del temp
+    del dfMb51
 
     if not dfComp.shape[0]==dfComp.merge(dfCab,how="left",on=['Centro', 'Orden']).shape[0]:
         raise Exception("Filas añadidas")
 
     dfComp=dfComp.merge(dfCab,how="left",on=['Centro', 'Orden'])
 
-    dfComp["Cantidad Plan MP"]=dfComp["Cantidad Real PT"].divide(dfComp["Cantidad Plan PT"],fill_value=0)*dfComp["Cantidad necesaria (EINHEIT)"]
+    dfComp["Cantidad Escala"]=dfComp["Cantidad Real PT"].divide(dfComp["Cantidad Plan PT"],fill_value=0)*dfComp["Cantidad necesaria (EINHEIT)"]
+    dfComp["Cantidad Escala"].replace([np.inf, -np.inf], 0, inplace=True)
+
     dfComp=dfComp.rename(columns={"Precio/MonL (WAERS)":"Precio Plan"})
+
+    #Precios en 0
 
     dfM=pd.read_excel(rutaM+"\MM60.xlsx",usecols=["Material","Centro","Cantidad base","Precio","Control de precios"],
                       converters={"Material":str,"Centro":str})
     dfM=dfM.drop_duplicates(subset=["Material","Centro"])
+
+    dfM=dfM.rename(columns={"Precio":"Precio MM60"})
+    dfM["Precio MM60"]=dfM["Precio MM60"].divide(dfM["Cantidad base"],fill_value=0).fillna(0).replace([np.inf, -np.inf], 0)
+
     if not dfComp.shape[0]==dfComp.merge(dfM,on=["Centro","Material"],how="left").shape[0]:
         raise Exception("MM60 inserta datos")
 
-    dfM=dfM.rename(columns={"Precio":"Precio MM60"})
-    dfM["Precio MM60"]=dfM["Precio MM60"].divide(dfM["Cantidad base"],fill_value=0).fillna(0)
-
     dfComp=dfComp.merge(dfM,on=["Centro","Material"],how="left")
-    #del dfM
-    dfComp["Cantidad base"].fillna(1,inplace=True)
-    dfComp["Precio Plan"]=dfComp["Precio Plan"].divide(dfComp["Cantidad base"])
 
-    dfComp["Precio tomado"]=dfComp["Valor de la toma (WAERS)"].divide(dfComp["Cantidad tomada (EINHEIT)"],fill_value=0)
+    dfComp["Cantidad base"].fillna(1,inplace=True)
+    dfComp["Precio Plan"]=dfComp["Precio Plan"].divide(dfComp["Cantidad base"]).replace([np.inf, -np.inf], 0)
+
+    dfComp["Precio tomado"]=dfComp["Valor de la toma (WAERS)"].divide(dfComp["Cantidad tomada (EINHEIT)"],fill_value=0).replace([np.inf, -np.inf], 0)
     dfComp["Precio tomado"].fillna(0,inplace=True)
+
     dfComp["Precio esperado"] = dfComp["Precio Plan"]
     dfComp.loc[dfComp["Precio Plan"]==0.0,"Precio esperado"]=dfComp.loc[dfComp["Precio Plan"]==0.0,"Precio tomado"]
-
+    
     dfMb51=pd.read_excel(ruta+"\{}\Consumos\{}. MB51 (Consumos).xlsx".format(tiempo[0],tiempo[1]),usecols=colsMb51,converters=convMb51)
-
     dfMb51["Clase de movimiento"]=dfMb51["Clase de movimiento"].replace(["262","102","532"],["261","101","531"])
-
+    
     dfMb51=dfMb51.groupby(["Orden","Centro","Material","Clase de movimiento"]).sum().reset_index()
-
-    dfMb51["Precio MB51"]=dfMb51["Importe ML"].divide(dfMb51["Ctd.en UM entrada"],fill_value=0).fillna(0)
-
+    dfMb51["Precio MB51"]=dfMb51["Importe ML"].divide(dfMb51["Ctd.en UM entrada"],fill_value=0).fillna(0).replace([np.inf, -np.inf], 0)
     if not dfComp.shape[0]==dfComp.merge(dfMb51[["Orden","Centro","Material","Clase de movimiento","Precio MB51"]],
                                   on=["Orden","Centro","Material","Clase de movimiento"],
                                  how="left").shape[0]:
         raise Exception("Mb51 añade valores")
-
     dfComp=dfComp.merge(dfMb51[["Orden","Centro","Material","Clase de movimiento","Precio MB51"]],
                                   on=["Orden","Centro","Material","Clase de movimiento"],
                                  how="left")
@@ -981,11 +1057,9 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     dfComp["Precio MM60"].fillna(0,inplace=True)
 
     dfComp.loc[dfComp["Precio esperado"]==0.0,"Precio esperado"]=dfComp.loc[dfComp["Precio esperado"]==0.0,"Precio MB51"]
-    dfComp.loc[dfComp["Precio Plan"]==0.0,"Precio Plan"]=dfComp.loc[dfComp["Precio Plan"]==0.0,"Precio MB51"]
-
     dfComp.loc[dfComp["Precio esperado"]==0.0,"Precio esperado"]=dfComp.loc[dfComp["Precio esperado"]==0.0,"Precio MM60"]
+    dfComp.loc[dfComp["Precio Plan"]==0.0,"Precio Plan"]=dfComp.loc[dfComp["Precio Plan"]==0.0,"Precio MB51"]
     dfComp.loc[dfComp["Precio Plan"]==0.0,"Precio Plan"]=dfComp.loc[dfComp["Precio Plan"]==0.0,"Precio MM60"]
-
     dfComp.loc[dfComp["Precio tomado"]==0.0,"Precio tomado"]=dfComp.loc[dfComp["Precio tomado"]==0.0,"Precio MB51"]    
     dfComp.loc[dfComp["Precio tomado"]==0.0,"Precio tomado"]=dfComp.loc[dfComp["Precio tomado"]==0.0,"Precio MM60"]
 
@@ -993,104 +1067,21 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     dfComp.loc[dfComp["Costo Tomado"]==0.0,"Costo Tomado"]=dfComp.loc[dfComp["Costo Tomado"]==0.0,"Valor de la toma (WAERS)"]
     dfComp.loc[dfComp["Valor de la toma (WAERS)"]==0.0,"Valor de la toma (WAERS)"]=dfComp.loc[dfComp["Valor de la toma (WAERS)"]==0.0,"Costo Tomado"]
 
-    dfComp["Costo Estándar"]=dfComp["Cantidad Plan MP"]*dfComp["Precio Plan"]
+    dfComp["Costo Estándar"]=dfComp["Cantidad Escala"]*dfComp["Precio Plan"]
     dfComp["Costo Esperado"]=dfComp["Cantidad tomada (EINHEIT)"]*dfComp["Precio esperado"]
 
     dfComp["Variación Consumo"]=dfComp["Costo Esperado"]-dfComp["Costo Estándar"]
     dfComp["Variación Precio"]=dfComp["Costo Tomado"]-dfComp["Costo Esperado"]
     del dfComp['Cantidad base']
-    dfComp=dfComp[['Orden', 'Centro', 'Receta', 'Desc. Receta','Clase de movimiento', 'Material', 'Texto breve material',
-           'Unidad medida base (=EINHEIT)', 'Cantidad necesaria (EINHEIT)','Cantidad tomada (EINHEIT)',
-            'Valor de la toma (WAERS)', 'Almacén','División','Fecha liberac.real', 'Status',
-           'Cantidad Plan PT', 'Cantidad Real PT', 
-            'Cantidad Plan MP', 'Precio tomado', 'Precio esperado', 'Precio Plan',"Precio MM60","Precio MB51",
-            'Costo Estándar', 'Costo Esperado',"Costo Tomado",
-           'Variación Consumo', 'Variación Precio',"Control de precios"]]
 
-    temp=dfMb51[dfMb51["Clase de movimiento"]=="101"][["Orden","Centro","Material","Clase de movimiento"]].rename(columns={"Material":"Receta"})
-
-    temp["Cab"]="Cab"
-
-    if not dfComp.shape[0]==dfComp.merge(temp,on=["Orden","Centro","Receta","Clase de movimiento"],how="left").shape[0]:
-        raise Exception("Cabeceras MB51 inserta filas")
-
-    dfComp=dfComp.merge(temp,on=["Orden","Centro","Receta","Clase de movimiento"],how="left")
-
-    for i in ["Costo Estándar","Costo Esperado","Costo Tomado","Variación Consumo","Variación Precio"]:
-        dfComp[i].fillna(0,inplace=True)
-    #aca1
-    dfComp.loc[(dfComp["Receta"]!=dfComp["Material"])&(dfComp["Cab"]=="Cab"),"Cab"]="Consumos"
-
-    del temp["Cab"]
-    temp1=dfComp[dfComp["Cab"]=="Cab"][["Orden","Centro","Receta","Clase de movimiento"]].drop_duplicates()
-    temp1["Cab"]="Cab"
-
-    temp1=temp1.rename(columns={"Receta":"Material"})
-
-    if not dfMb51.shape[0]==dfMb51.merge(temp1,on=["Orden","Centro","Material","Clase de movimiento"],how="left").shape[0]:
-        raise Exception("Temp1 añade filas")
-
-    dfMb51=dfMb51.merge(temp1,on=["Orden","Centro","Material","Clase de movimiento"],how="left")
-
-    temp=dfMb51[dfMb51["Cab"]!="Cab"]
-    del temp["Cab"]
-    del temp["Precio MB51"]
-
-    temp=temp[temp["Clase de movimiento"]=="101"]
-
-    temp=temp.rename(columns={"Material":"Receta","Ctd.en UM entrada":"Cantidad tomada (EINHEIT)","Importe ML":"Valor de la toma (WAERS)"})
-
-    dfCab=pd.read_excel(ruta+"\{}\Consumos\{}. Cabeceras de orden.xlsx".format(tiempo[0],tiempo[1]),usecols=colsCab,converters=convCab)
-    dfCab=dfCab.rename(columns={"Cantidad orden (GMEIN)":"Cantidad Plan PT","Cantidad entregada (GMEIN)":"Cantidad Real PT",
-                                   'Número material':"Receta",'Texto breve material':"Desc. Receta",
-                               'Unidad de medida (=GMEIN)':'Unidad medida base (=EINHEIT)'})
-
-    dfCab["Status"]=dfCab["Status de sistema"].str[:4]
-
-    cols=['Centro', 'Orden', 'Receta', 'Desc. Receta','Cantidad Plan PT',
-           'Cantidad Real PT', 'División', 'Fecha liberac.real', 'Status','Unidad medida base (=EINHEIT)']
-
-    if not temp.shape[0]==temp.merge(dfCab[cols],on=['Centro', 'Orden', 'Receta'],
-              how="left").shape[0]:
-        raise Exception("Cabeceras inserta filas")
-
-    temp=temp.merge(dfCab[cols],on=['Centro', 'Orden', 'Receta'],how="left")
-
-    temp["División"].fillna("No encontrado",inplace=True)
-
-    temp=temp[~temp["Status"].isna()]
-
-    temp["Cab"]="Cab"
-
-    temp["Material"]=temp["Receta"].copy()
-    temp["Texto breve material"]=temp["Desc. Receta"].copy()
-
-    temp["Almacén"]="No encontrado"
-
-    temp["Cantidad Plan MP"]=temp["Cantidad Plan PT"].copy()
-    temp["División"]=temp["División"].fillna("No encontrado")
-
-    for i in ['Precio tomado', 'Precio esperado', 'Precio Plan', 'Precio MM60','Precio MB51']:
-        temp[i]=0
-
-    for i in ['Costo Estándar', 'Costo Esperado', 'Costo Tomado']:
-        temp[i]=temp['Valor de la toma (WAERS)'].copy()
-
-    temp['Variación Consumo']=0
-    temp['Variación Precio']=0
-
-    dfComp.reset_index(inplace=True, drop=True)
-    temp.reset_index(inplace=True, drop=True)
-
-    dfComp["Cab"].fillna("Consumos",inplace=True)
-    temp["Cantidad necesaria (EINHEIT)"]=temp["Cantidad tomada (EINHEIT)"]
-
-    for i in temp.columns:
-        if "Precio" not in i:
-            if (temp[i].dtype=="float64") or (temp[i].dtype=="int64"):
-                temp[i]=-temp[i]
-
-    dfComp=pd.concat([dfComp,temp])
+    dfComp=dfComp[['Orden', 'Centro', 'Receta', 'Desc. Receta',"Clase",'Clase de movimiento', 
+                       'Material', 'Texto breve material','Unidad medida base (=EINHEIT)',
+                       'Cantidad necesaria (EINHEIT)','Cantidad tomada (EINHEIT)',
+                        'Valor de la toma (WAERS)', 'Fecha liberac.real', 'Status',
+                       'Cantidad Plan PT', 'Cantidad Real PT', 'Cantidad Escala',
+                       'Precio tomado', 'Precio esperado', 'Precio Plan',
+                        'Costo Estándar', 'Costo Esperado',"Costo Tomado",
+                   'Variación Consumo', 'Variación Precio',"Control de precios"]]
 
     dfEj=pd.read_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria.xlsx".format(tiempo[0],tiempo[1]),usecols=colsEjec,converters=convEjec)
 
@@ -1118,11 +1109,9 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     dfEj["Cantidad tomada (EINHEIT)"]=dfEj["Cantidad necesaria (EINHEIT)"]
     dfEj["Cantidad Plan MP"]=dfEj["Cantidad necesaria (EINHEIT)"]
 
-    dfEj["Almacén"]="No encontrado"
-
     dfEj['Precio tomado']=dfEj['Valor de la toma (WAERS)'].divide(dfEj['Cantidad necesaria (EINHEIT)'],fill_value=0).fillna(0)
 
-    for i in ['Precio esperado', 'Precio Plan', 'Precio MM60','Precio MB51']:
+    for i in ['Precio esperado', 'Precio Plan']:
         dfEj[i]=dfEj['Precio tomado']
 
     dfEj['Costo Estándar']=dfEj['Valor de la toma (WAERS)']-dfEj['Variación Precio']
@@ -1134,20 +1123,25 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
         if i not in dfComp.columns:
             del dfEj[i]
 
-    dfEj["Cab"]="Conversión"
+    dfEj["Clase"]="Conversión"
     dfEj["Clase de movimiento"]="CONV"
-    #break
+
     dfEj["Var Cuenta 7"]=dfEj["Variación Precio"]
     dfEj["Factor"]=dfEj['Cantidad Real PT'].divide(dfEj['Cantidad Plan PT'],fill_value=0).fillna(0)
     dfEj["Variación Consumo"]=(dfEj["Valor de la toma (WAERS)"]-dfEj["Variación Precio"])*(1-dfEj["Factor"])
+    dfEj["Cantidad Escala"]=dfEj["Factor"]*dfEj["Cantidad tomada (EINHEIT)"]
     del dfEj["Factor"]
 
     dfComp["Var Cuenta 7"]=0
 
     dfComp=pd.concat([dfComp,dfEj])
-
-    dfComp=dfComp.rename(columns={"Cab":"Clase"})
-
+    
+    
+    colsTemp=["Cantidad necesaria (EINHEIT)","Cantidad tomada (EINHEIT)","Valor de la toma (WAERS)","Cantidad Escala",
+             "Costo Estándar","Costo Esperado","Costo Tomado"]
+    dfComp.loc[dfComp["Clase"]=="Cabecera",colsTemp]=dfComp.loc[dfComp["Clase"]=="Cabecera",colsTemp]*-1
+    
+    
     vT=dfComp[["Orden","Costo Tomado","Variación Consumo","Variación Precio","Receta"]].copy()
     vT=vT.groupby(["Orden","Receta"]).sum().reset_index()
 
@@ -1155,7 +1149,7 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
 
     vT["Otras Variaciones"]=vT["Variación Total"]-vT["Variación Consumo"]-vT["Variación Precio"]
 
-    vT["Clase"]="Cab"
+    vT["Clase"]="Cabecera"
 
     if not dfComp.shape[0]==dfComp.merge(vT[["Orden","Receta","Clase","Variación Total","Otras Variaciones"]],how="left",on=["Orden","Receta","Clase"]).shape[0]:
         raise Exception("vT inserta filas")
@@ -1163,7 +1157,7 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     dfComp=dfComp.merge(vT[["Orden","Receta","Clase","Variación Total","Otras Variaciones"]],how="left",on=["Orden","Receta","Clase"])
     dfComp["Variación Total"].fillna(0,inplace=True)
     dfComp["Otras Variaciones"].fillna(0,inplace=True)
-    dfComp["Clase"]=dfComp["Clase"].replace("Cab","Cabecera")
+
     dfComp=dfComp.rename(columns={"Variación Total":"Neto Orden"})
 
     dfCentro=pd.read_excel(rutaM+"\Centros.xlsx",usecols=["Centro","Descripción Centro"],converters={"Centro":str})
@@ -1187,23 +1181,24 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
         if (dfComp[i].dtype == "datetime64[ns]") or (dfComp[i].dtype == "int64"):
             dfComp[i].fillna(datetime(tiempo[0],tiempo[1],1),inplace=True)
 
+    dfComp["Variación Total"]=dfComp["Variación Consumo"]+dfComp['Variación Precio']+dfComp['Otras Variaciones']
+
     cols=['Orden', 'Centro', 'Descripción Centro', 'Receta', 'Desc. Receta', 'Clase', 'Clase de movimiento',
        'Material', 'Texto breve material', 'Unidad medida base (=EINHEIT)',
        'Cantidad necesaria (EINHEIT)', 'Cantidad tomada (EINHEIT)',
-       'Valor de la toma (WAERS)', 'Almacén', 'División', 'Fecha liberac.real',
-       'Status', 'Cantidad Plan PT', 'Cantidad Real PT', 'Cantidad Plan MP',
-       'Precio tomado', 'Precio esperado', 'Precio Plan', 'Precio MM60',
-       'Precio MB51', 'Costo Estándar', 'Costo Esperado', 'Costo Tomado',
-       'Variación Consumo', 'Variación Precio',  'Otras Variaciones','Neto Orden',"Var Cuenta 7",
+       'Valor de la toma (WAERS)', 'Fecha liberac.real',
+       'Status', 'Cantidad Plan PT', 'Cantidad Real PT', 'Cantidad Escala',
+       'Precio tomado', 'Precio esperado', 'Precio Plan', 
+          'Costo Estándar', 'Costo Esperado', 'Costo Tomado',
+       'Variación Consumo', 'Variación Precio',  'Otras Variaciones',"Variación Total",'Neto Orden',"Var Cuenta 7",
          'Control de precios','Control de precios Receta']
 
     dfComp=dfComp[cols]
-    dfComp.loc[(dfComp["Clase"]=="Consumos") & (dfComp["Clase de movimiento"].isin(["101","102"])),"Clase"] = "Otras Entregas"
-    dfComp.loc[(dfComp["Clase"]=="Consumos") & (dfComp["Clase de movimiento"].isin(["531","532"])),"Clase"] = "Subproductos"
+    dfComp=dfComp[~((dfComp["Receta"]==dfComp["Material"]) & (dfComp["Clase de movimiento"]=="101")& (dfComp["Clase"]=="Otras Entregas"))]
     dfComp.to_excel(rutaR+"\Consumos\{}\{}. Consumos.xlsx".format(tiempo[0],tiempo[1]),index=None)
-    
 
-    
+    print(tiempo)
+
     print("{} {} Consumos generados con éxito".format(y,m))
 
 
