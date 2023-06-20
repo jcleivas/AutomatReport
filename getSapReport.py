@@ -1238,6 +1238,9 @@ def getReport(args,ruta=ruta):
             cooisAdicionales(session,m,y,ruta)
             consumosMB51(session,m,y,ruta)
             ksb1(session,m,y,ruta)
+            produccion(session,m,y,ruta)
+            produccionCarnes(session,m,y,ruta)
+            maestras(session,ruta)
     
     if args.consumoR:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
