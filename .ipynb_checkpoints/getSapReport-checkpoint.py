@@ -8,6 +8,9 @@ from calendar import monthrange
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
+import Correos
+
+
 
 def month_year_iter( start_month, start_year, end_month, end_year ):
     ym_start= 12*start_year + start_month - 1
@@ -387,7 +390,7 @@ def produccionCarnes(session,m,y,ruta):
     fname="{}. Producción Carnes.xlsx".format(i)
     session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = fname
     session.findById("wnd[1]/tbar[0]/btn[11]").press() 
-    
+    print(1)
     closeExcel(fname)    
     print("{} descargado con éxito".format(fname))
 
@@ -658,6 +661,9 @@ def ksb1(session,m,y,ruta):
         closeExcel(fname)
         print("{} descargado con éxito".format(fname))
         
+        print('Cierre los exceles correspondientes')
+        x = input()
+        print('Exceles cerrados')
         
         ejecAgg(m,y,ruta)
 
@@ -779,7 +785,8 @@ def ejecAgg(m,y,ruta):
     dfEj["CtoKg2"].replace([np.inf, -np.inf], 0, inplace=True)
     
     dfEj.to_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria (Agg Lite).xlsx".format(tiempo[0],tiempo[1]),index=None)
-    print(tiempo)
+    
+    print("Ejecución Agregada generada con éxito")
     
 def maestras(session,ruta):
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nmm60"
@@ -1205,17 +1212,19 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
 
 
 def closeExcel(fname,qExcel=parse_args().qExcel):
-    """
-    time.sleep(5)
+    
+    time.sleep(10)
     xl=win32com.client.Dispatch("Excel.Application")
+    #print("Libros: {}".format(len(xl.Workbooks)))
     for wb in xl.Workbooks:
+        #print(wb.Name)
         if wb.Name ==fname:
             wb.Close()
             wb=None
     if qExcel:
         xl.Quit()
     xl=None
-    """
+    
 
 
 
@@ -1237,6 +1246,8 @@ def getReport(args,ruta=ruta):
             produccionCarnes(session,m,y,ruta)
             maestras(session,ruta)
             reporteConsumos(m,y,ruta)
+            correos.correoC7()
+            correos.correoConsumos()
     
     if args.consumoR:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):

@@ -51,7 +51,7 @@ def correoC7():
     <br>
     <br>
     <p class="MsoNormal">Buen día equipo,<br></p>
-    <p class="MsoNormal">Adjunto el avance en la ejecución de la cuenta 7. La proyección de la variación suponiendo un costo real similar al del mes anterior son
+    <p class="MsoNormal">A continuación envio el avance en la ejecución de la cuenta 7. La proyección de la variación suponiendo un costo real similar al del mes anterior son
     <b><span style="font-size:12.0pt">{:,.0f} MM COP</span></b>, mientras que versus la meta planteada son
     <b><span style="font-size:12.0pt">{:,.0f} MM COP</span></b>.<o:p></o:p></p>
     <p class="MsoNormal"><o:p>&nbsp;</o:p></p>
@@ -74,7 +74,7 @@ def correoC7():
     fnameImage='Variación Cuenta 7.jpg'
     varMesAnt,varMesMeta=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
     
-    mailto = 'jcleiva@Grupo-exito.com'
+    mailto = 'jcleiva@Grupo-exito.com;amatiz@Grupo-Exito.com'
     subject = 'Informe Costos de Conversión (Cuenta 7)'
 
     correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,"Cuenta7")
@@ -85,7 +85,7 @@ def correoConsumos():
     <br>
     <br>
     <p class="MsoNormal">Buen día equipo,<br></p>
-    <p class="MsoNormal">Adjunto el reporte de variaciones en las órdenes de producción, cuya variación actual suma
+    <p class="MsoNormal">A continuación envio el reporte de variaciones en las órdenes de producción, cuya variación actual suma
     <b><span style="font-size:12.0pt">{:,.0f} MM COP</span></b><o:p></o:p></p>
     <p class="MsoNormal"><o:p>&nbsp;</o:p></p>
     <p class="MsoNormal" align="center" style="text-align:center"><img width="838" height="181" style="width:8.7291in;height:1.8854in" id="Imagen_x0020_1" src="{}" alt="Tabla
@@ -107,7 +107,7 @@ def correoConsumos():
     fnameImage='Consumos.jpg'
     varMesAnt,varMesMeta=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Consumos")
     
-    mailto = 'jcleiva@Grupo-exito.com'
+    mailto = 'jcleiva@Grupo-exito.com;amatiz@Grupo-Exito.com'
     subject = 'Informe Consumos y Precios'
 
     correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt/1000000,varMesMeta,"Consumos")
