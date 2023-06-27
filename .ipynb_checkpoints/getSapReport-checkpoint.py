@@ -49,8 +49,9 @@ def parse_args():
     parser.add_argument("-D",dest="despachos",action="store_true",help="Descarga Despachos")
     parser.add_argument("-p",dest="prod",action="store_true",help="Descarga Producción")
     parser.add_argument("-ke24",dest="ke24",action="store_true",help="Descarga ke24")
+    parser.add_argument("-mail",dest="cor",action="store_true",help="Envia reportes por correo")
     dia=datetime.now()
-    parser.set_defaults(consumo=False,consumoR=False, ejec=False,ejecCEBE=False,mb51=False,mb51B=False, despachos=False, maestra=False,prod=False,ke24=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
+    parser.set_defaults(consumo=False,consumoR=False, ejec=False,ejecCEBE=False,mb51=False,mb51B=False, despachos=False, maestra=False,prod=False,ke24=False,cor=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
     args=parser.parse_args()
     return args
     
@@ -390,7 +391,6 @@ def produccionCarnes(session,m,y,ruta):
     fname="{}. Producción Carnes.xlsx".format(i)
     session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = fname
     session.findById("wnd[1]/tbar[0]/btn[11]").press() 
-    print(1)
     closeExcel(fname)    
     print("{} descargado con éxito".format(fname))
 
@@ -899,12 +899,10 @@ def ke24(session,m,y,ruta):
     closeExcel(fname)    
     print("{} descargado con éxito".format(fname))
 
-    
-
    
-rutaM=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes Base\Maestras"
+rutaM=r"C:\Users\jcleiva\Documents\Reportes Base\Maestras"
 rutaR=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes"    
-ruta=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes Base"
+ruta=r"C:\Users\jcleiva\Documents\Reportes Base"
 
 def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     tiempo=(y,m)
@@ -1215,7 +1213,7 @@ def closeExcel(fname,qExcel=parse_args().qExcel):
     
     time.sleep(10)
     xl=win32com.client.Dispatch("Excel.Application")
-    #print("Libros: {}".format(len(xl.Workbooks)))
+    print("Libros: {}".format(len(xl.Workbooks)))
     for wb in xl.Workbooks:
         #print(wb.Name)
         if wb.Name ==fname:
@@ -1237,6 +1235,7 @@ def getReport(args,ruta=ruta):
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             m=tiempo[1]
             y=tiempo[0]
+            
             cooisCabeceras(session,m,y,ruta)
             cooisComponentes(session,m,y,ruta)
             cooisAdicionales(session,m,y,ruta)
@@ -1246,8 +1245,10 @@ def getReport(args,ruta=ruta):
             produccionCarnes(session,m,y,ruta)
             maestras(session,ruta)
             reporteConsumos(m,y,ruta)
-            correos.correoC7()
-            correos.correoConsumos()
+            
+            if args.cor:
+                Correos.correoC7()
+                Correos.correoConsumos()
     
     if args.consumoR:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
