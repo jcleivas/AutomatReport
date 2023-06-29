@@ -7,7 +7,7 @@ def refreshAndSaveImage(path,fname,path_to_img,fnameImage,tipo):
     xl = win32.DispatchEx("Excel.Application")
     wb = xl.workbooks.open(path+"/"+fname)
     xl.Visible = True
-    wb.RefreshAll()
+    #wb.RefreshAll()
     if tipo=="Cuenta7":
         ws = wb.Worksheets['Resumen STD']
 
@@ -59,43 +59,58 @@ def correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanP
     mail.To = mailto
     mail.Subject = subject
     if tipo=="Cuenta7":
+        att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
+        att1.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId1")
+        
+        att2=mail.Attachments.Add(path_to_img+"/" + fnameImage[2])
+        att2.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId2")
+        
+        att0=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
+        att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
+        
         mail.HTMLBody = html.format(avanPpto,varPpto,cumpPpto*100,
-                                    path_to_img+"/" + fnameImage[1],path_to_img+"/" + fnameImage[2],
-                                    varMesAnt,varMesMeta, path_to_img+"/" + fnameImage[0])
+                                    "MyId1","MyId2",varMesAnt,varMesMeta, "MyId0")
     if tipo=="Consumos":
-        mail.HTMLBody = html.format(varMesAnt,path_to_img+"/" + fnameImage[0])
+        
+        att0=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
+        att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
+        
+        mail.HTMLBody = html.format(varMesAnt,"MyId0")
     mail.Send()
     
     
 def correoC7():
-    html="""<div class="WordSection1">
+    html="""
+    <p>Buen día equipo,<br></p>
+    <p>
+    El avance en la ejecución de la cuenta 7 es de 
+    <b>{:,.0f} MM COP</b>, con una variación frente a presupuesto de 
+    <b>{:,.0f} MM COP</span></b> (Cumplimiento: {:,.1f}%)
+    </p>
+    <p align="center">
+    <img src="cid:{}" alt="Tabla Descripción generada automáticamente">
+    </p>
     <br>
+    <p>El cumplimiento por centro de beneficio (CEBE) es el siguiente:</p>
+    <p align="center">
+    <img src="cid:{}" alt="Tabla Descripción generada automáticamente">
+    </p>
     <br>
-    <p class="MsoNormal">Buen día equipo,<br></p>
-    <p class="MsoNormal">El avance en la ejecución de la cuenta 7 es de 
-    <b><span style="font-size:12.0pt">{:,.0f} MM COP</span></b>, con una variación frente a presupuesto de 
-    <b><span style="font-size:12.0pt">{:,.0f} MM COP</span></b> (Cumplimiento: {:,.1f}%)</p>
-    <p class="MsoNormal" align="center" style="text-align:center"><img width="759" height="292" style="width:7.9062in;height:3.0416in" id="Imagen_x0020_1" src="{}" alt="Tabla
-    Descripción generada automáticamente"><o:p></o:p></p>
-    <p class="MsoNormal"><o:p>&nbsp;</o:p></p>
-    <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>El cumplimiento por centro de beneficio (CEBE) es el siguiente:</p>
-    <p class="MsoNormal" align="center" style="text-align:center"><img width="678" height="285" style="width:7.0625in;height:2.9687in" id="Imagen_x0020_2" src="{}" alt="Tabla
-    Descripción generada automáticamente"><o:p></o:p></p>
-    <p class="MsoNormal"><o:p>&nbsp;</o:p></p>
-    <p class="MsoNormal">La proyección líneal de la variación suponiendo un costo real similar al del mes anterior son
-    <b><span style="font-size:12.0pt">{:,.0f} MM COP</span></b>, mientras que versus la meta planteada son
-    <b><span style="font-size:12.0pt">{:,.0f} MM COP</span></b>.<o:p></o:p></p>
-    <p class="MsoNormal" align="center" style="text-align:center"><img width="743" height="236" style="width:7.7395in;height:2.4583in" id="Imagen_x0020_3" src="{}" alt="Tabla
-    Descripción generada automáticamente"><o:p></o:p></p>
-    <p class="MsoNormal" align="center" style="text-align:center"><o:p>&nbsp;</o:p></p>
-    <p class="MsoNormal"><o:p>&nbsp;</o:p></p>
-    <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>
+    <p>
+    La proyección líneal de la variación suponiendo un costo real similar al del mes anterior son
+    <b>{:,.0f} MM COP</b>, mientras que versus la meta planteada son
+    <b>{:,.0f} MM COP.</b>
+    </p>
+    <p align="center">
+    <img src="cid:{}" alt="Tabla Descripción generada automáticamente"></p>
+    <p>
+    <br>
     Las visuales frente a presupuesto no contemplan los centros de beneficio de granos ni salas de desposte. El Centro de Costos de Logística OUT se encuentra filtrado también.<br>
     El link del reporte es el siguiente: 
     <a href="https://grupoexito-my.sharepoint.com/:x:/g/personal/jcleiva_grupo-exito_com/ET_eH6v66-1IvZ3_z2MKOo8BDtKp8_Vul_RibHzKbxKM1A"><span class=MsoSmartlink><
-    Ejecución Cuenta 7 (Lite).xlsx</span></a> &nbsp;<o:p></o:p></p>
+    Ejecución Cuenta 7 (Lite).xlsx</span></a></p>
 
-    <p class="MsoNormal">Cordial saludo,
+    <p>Cordial saludo,
     <br>JuanL</p>
     </div>"""
     
@@ -105,32 +120,28 @@ def correoC7():
     fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
     varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
     
-    mailto = 'jcleiva@Grupo-exito.com'
+    mailto = 'jcleiva@Grupo-exito.com;amatiz@Grupo-Exito.com'
     subject = 'Informe Costos de Conversión (Cuenta 7)'
 
     correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,"Cuenta7")
 
 
 def correoConsumos():
-    html="""<div class="WordSection1">
-    <br>
-    <br>
-    <p class="MsoNormal">Buen día equipo,<br></p>
-    <p class="MsoNormal">A continuación envio el reporte de variaciones en las órdenes de producción, cuya variación actual suma
-    <b><span style="font-size:12.0pt">{:,.0f} MM COP.</span></b></p>
-    <p class="MsoNormal" align="center" style="text-align:center"><img width="838" height="181" style="width:8.7291in;height:1.8854in" id="Imagen_x0020_1" src="{}" alt="Tabla
-    Descripción generada automáticamente"><o:p></o:p></p>
-    <p class="MsoNormal" align="center" style="text-align:center"><o:p>&nbsp;</o:p></p>
-    <p class="MsoNormal"><o:p>&nbsp;</o:p></p>
-    <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>
-    El link del reporte es el siguiente: 
+    html= """
+    <p>
+    Buen día equipo,
+    </p>
+    <p>A continuación envio el reporte de variaciones en las órdenes de producción, cuya variación actual suma
+    <b>{:,.0f} MM COP.</p>
+    <p align="center"><img src="cid:{}" alt="Tabla Descripción generada automáticamente"></p>
+    <p>
+    El link del reporte es el siguiente:
     <a href="https://grupoexito-my.sharepoint.com/:x:/g/personal/jcleiva_grupo-exito_com/EWAKvrk8vGxHkpzJWNin06IBMwDw6KwLhErMuFCLvfSeJw?e=YuPqTs"><span class=MsoSmartlink><
-    Reporte de Consumos y Precios.xlsx</span></a> &nbsp;<o:p></o:p></p>
-
-    <p class="MsoNormal">Cordial saludo,
-    <br>JuanL</p>
-    </div>"""
+    Reporte de Consumos y Precios.xlsx</a>
     
+    <p>Cordial saludo,
+    <br>JuanL</p>
+    """
     path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Reportes Industria"
     fname="Reporte de Consumos y Precios.xlsx"
     path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"

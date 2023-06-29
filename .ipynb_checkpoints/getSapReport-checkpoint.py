@@ -49,9 +49,11 @@ def parse_args():
     parser.add_argument("-D",dest="despachos",action="store_true",help="Descarga Despachos")
     parser.add_argument("-p",dest="prod",action="store_true",help="Descarga Producción")
     parser.add_argument("-ke24",dest="ke24",action="store_true",help="Descarga ke24")
+    parser.add_argument("-tr",dest="traslado",action="store_true",help="Descarga reportes de traslados")
     parser.add_argument("-mail",dest="cor",action="store_true",help="Envia reportes por correo")
     dia=datetime.now()
-    parser.set_defaults(consumo=False,consumoR=False, ejec=False,ejecCEBE=False,mb51=False,mb51B=False, despachos=False, maestra=False,prod=False,ke24=False,cor=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
+    parser.set_defaults(consumo=False,consumoR=False, ejec=False,ejecCEBE=False,mb51=False,mb51B=False, despachos=False, maestra=False,prod=False,
+                        ke24=False,traslado=False,cor=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
     args=parser.parse_args()
     return args
     
@@ -1206,9 +1208,101 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
 
     print("{} {} Consumos generados con éxito".format(y,m))
 
+def reporteTraslados(m,y,ruta,rutaD):
+    rMB=r"\{}. MB51 (Traslados).xlsx"
+    rCV=r"\{}. Traslados CEBE.xlsx"
 
+    colsMB51=["Centro","Nombre 1","Material","Texto breve de material",
+              "Ctd.en UM entrada","Importe ML","Clase de movimiento",
+              "Unidad medida base","Texto de clase-mov.","Documento material"]
+    convMB51={"Centro":str,"Material":str,"Clase de movimiento":str,"Documento material":str}
 
+    colsCV=["Nº doc.refer.","En moneda local centro de beneficio"]
+    convCV={"Nº doc.refer.":str}
+    
+    tiempo=(y,m)
+    
+    dfMb51=pd.read_excel(ruta.format(tiempo[0])+rMB.format(tiempo[1]),usecols=colsMB51,converters=convMB51)
+    dfCV=pd.read_excel(ruta.format(tiempo[0])+rCV.format(tiempo[1]),usecols=colsCV,converters=convCV)
+    
+    dfMb51=dfMb51[dfMb51["Documento material"].isin(dfCV["Nº doc.refer."])]
 
+    if dfMb51["Importe ML"].sum()+dfCV["En moneda local centro de beneficio"].sum() != 0.0:
+        print(dfMb51["Importe ML"].sum())
+        print(dfCV["En moneda local centro de beneficio"].sum())
+        print("Los reportes no están conciliados: {:,}".format(dfMb51["Importe ML"].sum()+dfCV["En moneda local centro de beneficio"].sum()))
+
+    dfMb51["Tipo"]=dfMb51["Importe ML"].apply(lambda x: "Origen" if x<0 else "Destino")
+    
+    dfMb51=dfMb51.rename(columns={"Nombre 1":"Descripción Centro"})
+    dfMb51.to_excel(rutaD+r"\{}\{}. Reporte de Traslados.xlsx".format(y,m),index=None)
+    print("Reporte de traslados ejecutado con éxito")
+
+def traslados(session,m,y,ruta,rutaD):
+    i=m
+    j=y
+    dias=monthrange(j,i)[1]
+    session.findById("wnd[0]/tbar[0]/okcd").text = "/nmb51"
+    session.findById("wnd[0]").sendVKey(0)
+    
+    session.findById("wnd[0]/tbar[1]/btn[17]").press()
+    session.findById("wnd[1]/tbar[0]/btn[8]").press()
+    
+    session.findById("wnd[1]/usr/cntlALV_CONTAINER_1/shellcont/shell").currentCellColumn = "TEXT"
+    session.findById("wnd[1]/usr/cntlALV_CONTAINER_1/shellcont/shell").selectedRows = "2"
+    session.findById("wnd[1]/usr/cntlALV_CONTAINER_1/shellcont/shell").doubleClickCurrentCell()
+    
+    session.findById("wnd[0]/usr/ctxtBUDAT-LOW").text = "{:02d}.{:02d}.{}".format(1,i,j)
+    session.findById("wnd[0]/usr/ctxtBUDAT-HIGH").text = "{:02d}.{:02d}.{}".format(dias,i,j)
+    
+    session.findById("wnd[0]/tbar[1]/btn[8]").press()
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").setCurrentCell(5,"BTEXT")
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").selectedRows = "5"
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").contextMenu()
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").selectContextMenuItem("&XXL")
+
+    session.findById("wnd[1]/tbar[0]/btn[0]").press()
+    session.findById("wnd[1]/usr/ctxtDY_PATH").text = ruta.format(j)
+    fname="{}. MB51 (Traslados).xlsx".format(i)
+    session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = fname
+    session.findById("wnd[1]/tbar[0]/btn[11]").press() 
+    
+    closeExcel(fname)    
+    print("{} descargado con éxito".format(fname))
+    
+    session.findById("wnd[0]/tbar[0]/okcd").text = "/nS_ALR_87013326"
+    session.findById("wnd[0]").sendVKey(0)
+    try:
+        session.findById("wnd[1]/usr/sub:SAPLSPO4:0300/ctxtSVALD-VALUE[0,21]").text = "CO10"
+        session.findById("wnd[1]").sendVKey(0)
+    except:
+        pass
+    session.findById("wnd[0]/usr/ctxtPAR_27").text = str(m)
+    session.findById("wnd[0]/usr/ctxtPAR_28").text = str(m)
+    session.findById("wnd[0]/usr/ctxtPAR_31").text = str(y)
+    session.findById("wnd[0]/usr/ctxtPAR_30").text = "0"
+    session.findById("wnd[0]/usr/ctxtPAR_35").text = "industria"
+    session.findById("wnd[0]/usr/ctxtPAR_W34-LOW").text = "612014004"
+    session.findById("wnd[0]/tbar[1]/btn[8]").press()
+    session.findById("wnd[0]/tbar[1]/btn[39]").press()
+    session.findById("wnd[1]").sendVKey(2)
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").currentCellColumn = "POPER"
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectedRows = "0"
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").contextMenu()
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectContextMenuItem("&XXL")
+    
+    session.findById("wnd[1]/tbar[0]/btn[0]").press()
+    session.findById("wnd[1]/usr/ctxtDY_PATH").text = ruta.format(j)
+    fname="{}. Traslados CEBE.xlsx".format(i)
+    session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = fname
+    session.findById("wnd[1]/tbar[0]/btn[11]").press() 
+    
+    closeExcel(fname)    
+    print("{} descargado con éxito".format(fname))
+    
+    reporteTraslados(m,y,ruta,rutaD)
+    
+    
 def closeExcel(fname,qExcel=parse_args().qExcel):
     
     time.sleep(10)
@@ -1227,15 +1321,15 @@ def closeExcel(fname,qExcel=parse_args().qExcel):
 
 
 def getReport(args,ruta=ruta):
-    
-    if args.consumo or args.ejec or args.ejecCEBE or args.maestra or args.mb51 or args.mb51B or args.prod or args.despachos or args.ke24:
+    """
+    if args.consumo or args.ejec or args.ejecCEBE or args.maestra or args.mb51 or args.mb51B or args.prod or args.despachos or args.ke24 or args.traslado:
         session=sapConnection(False)
-    
+    """
     if args.consumo:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             m=tiempo[1]
             y=tiempo[0]
-            
+            """
             cooisCabeceras(session,m,y,ruta)
             cooisComponentes(session,m,y,ruta)
             cooisAdicionales(session,m,y,ruta)
@@ -1245,9 +1339,9 @@ def getReport(args,ruta=ruta):
             produccionCarnes(session,m,y,ruta)
             maestras(session,ruta)
             reporteConsumos(m,y,ruta)
-            
+            """
             if args.cor:
-                Correos.correoC7()
+                #Correos.correoC7()
                 Correos.correoConsumos()
     
     if args.consumoR:
@@ -1306,6 +1400,14 @@ def getReport(args,ruta=ruta):
             m=tiempo[1]
             y=tiempo[0]
             ke24(session,m,y,ruta)
+    
+    if args.traslado:
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            m=tiempo[1]
+            y=tiempo[0]
+            ruta=r"C:\Users\jcleiva\Documents\Reportes Base\{}\Traslados"
+            rutaD=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Traslados"
+            traslados(session,m,y,ruta,rutaD)
         
 if __name__ == "__main__":
     
