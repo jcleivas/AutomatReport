@@ -35,6 +35,12 @@ def cmv(x):
     else:
         return "No encontrado"
 
+def cantidadEscalada(x):
+    if x["Clase"]=="Cabecera":
+        return x["Cantidad necesaria (EINHEIT)"]
+    else:
+        return x["Cantidad Real PT"]/x["Cantidad Plan PT"]*x["Cantidad necesaria (EINHEIT)"]
+    
 def parse_args():
     parser = argparse.ArgumentParser(description="Esta función determina qué reportes descargar")
     parser.add_argument("-c",dest="consumo",action="store_true",help="Descarga reportes de Consumo (MB51, COOISPI)")
@@ -1019,7 +1025,7 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
 
     dfComp=dfComp.merge(dfCab,how="left",on=['Centro', 'Orden'])
 
-    dfComp["Cantidad Escala"]=dfComp["Cantidad Real PT"].divide(dfComp["Cantidad Plan PT"],fill_value=0)*dfComp["Cantidad necesaria (EINHEIT)"]
+    dfComp["Cantidad Escala"]=dfComp.apply(cantidadEscalada,axis=1)
     dfComp["Cantidad Escala"].replace([np.inf, -np.inf], 0, inplace=True)
 
     dfComp=dfComp.rename(columns={"Precio/MonL (WAERS)":"Precio Plan"})
