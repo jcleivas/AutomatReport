@@ -7,7 +7,7 @@ def refreshAndSaveImage(path,fname,path_to_img,fnameImage,tipo):
     xl = win32.DispatchEx("Excel.Application")
     wb = xl.workbooks.open(path+"/"+fname)
     xl.Visible = True
-    #wb.RefreshAll()
+    wb.RefreshAll()
     if tipo=="Cuenta7":
         ws = wb.Worksheets['Resumen STD']
 
@@ -40,11 +40,11 @@ def refreshAndSaveImage(path,fname,path_to_img,fnameImage,tipo):
     if tipo=="Consumos":
         ws = wb.Worksheets['Resumen']
 
-        ws.Range(ws.Cells(6,2),ws.Cells(14,7)).CopyPicture(Format = 2)  
+        ws.Range(ws.Cells(6,2),ws.Cells(16,7)).CopyPicture(Format = 2)  
         img = ImageGrab.grabclipboard()
         imgFile = os.path.join(path_to_img,fnameImage[0])
         img.save(imgFile)
-        varMesAnt=ws.Cells(14,7).value
+        varMesAnt=ws.Cells(5,7).value
         time.sleep(20)
         wb.Close(True)
         time.sleep(20)
@@ -120,7 +120,7 @@ def correoC7():
     fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
     varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
     
-    mailto = 'jcleiva@Grupo-exito.com;amatiz@Grupo-Exito.com'
+    mailto = 'jcleiva@Grupo-exito.com'
     subject = 'Informe Costos de Conversión (Cuenta 7)'
 
     correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,"Cuenta7")
@@ -137,7 +137,7 @@ def correoConsumos():
     <p>
     El link del reporte es el siguiente:
     <a href="https://grupoexito-my.sharepoint.com/:x:/g/personal/jcleiva_grupo-exito_com/EWAKvrk8vGxHkpzJWNin06IBMwDw6KwLhErMuFCLvfSeJw?e=YuPqTs"><span class=MsoSmartlink><
-    Reporte de Consumos y Precios.xlsx</a>
+    Reporte de Consumos y Precios.xlsx</span></a></p>
     
     <p>Cordial saludo,
     <br>JuanL</p>

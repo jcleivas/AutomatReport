@@ -795,6 +795,30 @@ def ejecAgg(m,y,ruta):
     dfEj.to_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria (Agg Lite).xlsx".format(tiempo[0],tiempo[1]),index=None)
     
     print("Ejecución Agregada generada con éxito")
+
+def ejecCEBEAgg(m,y,ruta):
+    colsEjec=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","En moneda local centro de beneficio","Cantidad"]
+    convEjec={"Centro de beneficio":str,"Número de cuenta":str,"Material":str,"Centro":str}
+    tiempo=(y,m)
+    direc={"Costo de Ventas Industria CEBE.xlsx":"Costo de Ventas",
+           "Ingreso Industria CEBE.xlsx":"Ingresos",
+           "Gasto Industria CEBE.xlsx":"Gasto",
+           "Cuenta 7 Industria CEBE.xlsx":"Ejecución"}
+    for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
+        dfEj=pd.read_excel(ruta+"\{}\{}\{}. {}".format(tiempo[0],direc[file],tiempo[1],file),usecols=colsEjec,converters=convEjec)
+
+        for i in dfEj.columns:
+            if dfEj[i].dtype == "object":
+                dfEj[i].fillna("",inplace=True)
+            elif (dfEj[i].dtype == "float64") or (dfEj[i].dtype == "int64"):
+                dfEj[i].fillna(0.0,inplace=True)
+
+        colsTemp=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro"]
+        dfEj=dfEj.groupby(colsTemp,dropna=False).sum().reset_index()
+        dfEj["Fecha"]=datetime(tiempo[0],tiempo[1],1)
+        dfEj=dfEj.rename(columns={"En moneda local centro de beneficio":"Importe"})
+        dfEj.to_excel(ruta+"\{}\{}\{}. {} (Agg).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5]),index=None)
+        print("Archivo: "+"\{}\{}\{}. {} (Agg).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5])+" generado con éxito")
     
 def maestras(session,ruta):
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nmm60"
@@ -1220,7 +1244,7 @@ def reporteTraslados(m,y,ruta,rutaD):
 
     colsMB51=["Centro","Nombre 1","Material","Texto breve de material",
               "Ctd.en UM entrada","Importe ML","Clase de movimiento",
-              "Unidad medida base","Texto de clase-mov.","Documento material"]
+              "Unidad medida base","Texto de clase-mov.","Documento material","Fe.contabilización"]
     convMB51={"Centro":str,"Material":str,"Clase de movimiento":str,"Documento material":str}
 
     colsCV=["Nº doc.refer.","En moneda local centro de beneficio"]
@@ -1310,7 +1334,7 @@ def traslados(session,m,y,ruta,rutaD):
     
     
 def closeExcel(fname,qExcel=parse_args().qExcel):
-    
+    """
     time.sleep(10)
     xl=win32com.client.Dispatch("Excel.Application")
     print("Libros: {}".format(len(xl.Workbooks)))
@@ -1322,32 +1346,32 @@ def closeExcel(fname,qExcel=parse_args().qExcel):
     if qExcel:
         xl.Quit()
     xl=None
-    
+    """
 
 
 
 def getReport(args,ruta=ruta):
-    """
+    
     if args.consumo or args.ejec or args.ejecCEBE or args.maestra or args.mb51 or args.mb51B or args.prod or args.despachos or args.ke24 or args.traslado:
         session=sapConnection(False)
-    """
+    
     if args.consumo:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             m=tiempo[1]
             y=tiempo[0]
-            """
+            
             cooisCabeceras(session,m,y,ruta)
             cooisComponentes(session,m,y,ruta)
             cooisAdicionales(session,m,y,ruta)
             consumosMB51(session,m,y,ruta)
-            ksb1(session,m,y,ruta)
             produccion(session,m,y,ruta)
             produccionCarnes(session,m,y,ruta)
+            ksb1(session,m,y,ruta)
             maestras(session,ruta)
             reporteConsumos(m,y,ruta)
-            """
+            
             if args.cor:
-                #Correos.correoC7()
+                Correos.correoC7()
                 Correos.correoConsumos()
     
     if args.consumoR:
@@ -1368,10 +1392,16 @@ def getReport(args,ruta=ruta):
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             m=tiempo[1]
             y=tiempo[0]
+            
             cebeC7(session,m,y,ruta)
             cebeCV(session,m,y,ruta)
             cebeIng(session,m,y,ruta)
             cebeGasto(session,m,y,ruta)
+            print('Cierre los exceles correspondientes')
+            x = input()
+            print('Exceles cerrados')
+            
+            ejecCEBEAgg(m,y,ruta)
     
     if args.maestra:
         maestras(session,ruta)
