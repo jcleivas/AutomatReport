@@ -132,7 +132,7 @@ def correoConsumos():
     Buen día equipo,
     </p>
     <p>A continuación envio el reporte de variaciones en las órdenes de producción, cuya variación actual suma
-    <b>{:,.0f} MM COP.</p>
+    <b>{:,.0f} MM COP.</b></p>
     <p align="center"><img src="cid:{}" alt="Tabla Descripción generada automáticamente"></p>
     <p>
     El link del reporte es el siguiente:

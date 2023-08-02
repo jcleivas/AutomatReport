@@ -56,10 +56,11 @@ def parse_args():
     parser.add_argument("-p",dest="prod",action="store_true",help="Descarga Producción")
     parser.add_argument("-ke24",dest="ke24",action="store_true",help="Descarga ke24")
     parser.add_argument("-tr",dest="traslado",action="store_true",help="Descarga reportes de traslados")
+    parser.add_argument("-eAgg",dest="ejecAgg",action="store_true",help="Genera la ejecución de la 7 agrupada")
     parser.add_argument("-mail",dest="cor",action="store_true",help="Envia reportes por correo")
     dia=datetime.now()
     parser.set_defaults(consumo=False,consumoR=False, ejec=False,ejecCEBE=False,mb51=False,mb51B=False, despachos=False, maestra=False,prod=False,
-                        ke24=False,traslado=False,cor=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
+                        ke24=False,traslado=False,ejecAgg=False,cor=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
     args=parser.parse_args()
     return args
     
@@ -90,7 +91,7 @@ def sapConnectionBase(cSap):
             session = connection.Children(0)
             session.findById("wnd[1]").maximize()
             session.findById("wnd[1]/usr/txtRSYST-BNAME").text = "1030611534"
-            session.findById("wnd[1]/usr/pwdRSYST-BCODE").text = "Jess.1030611534"
+            session.findById("wnd[1]/usr/pwdRSYST-BCODE").text = "Tebis.1030611534"
             session.findById("wnd[1]").sendVKey(0)
             
             return session            
@@ -101,7 +102,7 @@ def sapConnectionBase(cSap):
             session = connection.Children(0)
             session.findById("wnd[0]").maximize()
             session.findById("wnd[1]/usr/txtRSYST-BNAME").text = "1030611534"
-            session.findById("wnd[1]/usr/pwdRSYST-BCODE").text = "Jess.1030611534"
+            session.findById("wnd[1]/usr/pwdRSYST-BCODE").text = "Tebis.1030611534"
             session.findById("wnd[1]").sendVKey(0)
             return session
 
@@ -141,7 +142,7 @@ def sapConnection(cSap):
     session = connection.Children(0)
     session.findById("wnd[0]").maximize()
     session.findById("wnd[0]/usr/txtRSYST-BNAME").text = "1030611534"
-    session.findById("wnd[0]/usr/pwdRSYST-BCODE").text = "Jess.1030611534"
+    session.findById("wnd[0]/usr/pwdRSYST-BCODE").text = "Tebis.1030611534"
     session.findById("wnd[0]").sendVKey(0)
     return session            
 
@@ -794,10 +795,10 @@ def ejecAgg(m,y,ruta):
     
     dfEj.to_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria (Agg Lite).xlsx".format(tiempo[0],tiempo[1]),index=None)
     
-    print("Ejecución Agregada generada con éxito")
+    print("Ejecución Agregada generada con éxito {} {}".format(tiempo[0],tiempo[1]))
 
 def ejecCEBEAgg(m,y,ruta):
-    colsEjec=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","En moneda local centro de beneficio","Cantidad"]
+    colsEjec=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","Clase mov. MM","En moneda local centro de beneficio","Cantidad"]
     convEjec={"Centro de beneficio":str,"Número de cuenta":str,"Material":str,"Centro":str}
     tiempo=(y,m)
     direc={"Costo de Ventas Industria CEBE.xlsx":"Costo de Ventas",
@@ -813,7 +814,7 @@ def ejecCEBEAgg(m,y,ruta):
             elif (dfEj[i].dtype == "float64") or (dfEj[i].dtype == "int64"):
                 dfEj[i].fillna(0.0,inplace=True)
 
-        colsTemp=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro"]
+        colsTemp=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","Clase mov. MM"]
         dfEj=dfEj.groupby(colsTemp,dropna=False).sum().reset_index()
         dfEj["Fecha"]=datetime(tiempo[0],tiempo[1],1)
         dfEj=dfEj.rename(columns={"En moneda local centro de beneficio":"Importe"})
@@ -859,72 +860,23 @@ def ke24(session,m,y,ruta):
         pass
 
     session.findById("wnd[0]/mbar/menu[1]/menu[0]/menu[0]").select()
-    
-    
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").currentCellRow = -1
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").selectColumn("VARIANT")
-    session.findById("wnd[1]/tbar[0]/btn[29]").press()
-    session.findById("wnd[2]/usr/ssub%_SUBSCREEN_FREESEL:SAPLSSEL:1105/ctxt%%DYN001-LOW").text = "Ingresos"
-    session.findById("wnd[2]/tbar[0]/btn[0]").press()
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").selectedRows = "0"
+    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").currentCellRow = 30
+    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").firstVisibleRow = 23
+    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").selectedRows = "30"
     session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").doubleClickCurrentCell()
-    
     session.findById("wnd[0]/usr/txtPERIO-LOW").text = "{:03d}.{}".format(m,y)
     session.findById("wnd[0]/usr/txtPERIO-HIGH").text = "{:03d}.{}".format(m,y)
-    session.findById("wnd[0]/usr/ctxtHZDAT-LOW").text = ""
-    session.findById("wnd[0]/usr/ctxtHZDAT-HIGH").text = ""
-    session.findById("wnd[0]/tbar[1]/btn[8]").press()
     
-    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").setCurrentCell(1,"PRCTR")
-    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectedRows = "14"
+    session.findById("wnd[0]/tbar[1]/btn[8]").press()
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").setCurrentCell(10,"PRCTR")
+    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectedRows = "10"
     session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").contextMenu()
     session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectContextMenuItem("&XXL")
     session.findById("wnd[1]/tbar[0]/btn[0]").press()
-
-    session.findById("wnd[1]/usr/ctxtDY_PATH").text = ruta+"\{}\Sublineas".format(y)
-    fname="{}. Ingresos.xlsx".format(i)
-    session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = fname
-    session.findById("wnd[1]/tbar[0]/btn[11]").press()
-
-    closeExcel(fname)    
-    print("{} descargado con éxito".format(fname))
-
-    session.findById("wnd[0]/tbar[0]/okcd").text = "/nke24"
-    session.findById("wnd[0]").sendVKey(0)
-    try:
-        session.findById("wnd[1]/usr/radRKEA2-PA_TYPE_2").select()
-        session.findById("wnd[1]/usr/ctxtRKEA2-ERKRS").text = "pa10"
-        session.findById("wnd[1]/usr/radRKEA2-PA_TYPE_2").setFocus()
-        session.findById("wnd[1]/tbar[0]/btn[0]").press()
-        session.findById("wnd[1]/usr/sub:SAPLSPO4:0300/ctxtSVALD-VALUE[0,21]").text = "CO10"
-        session.findById("wnd[1]/tbar[0]/btn[0]").press()
-    except:
-        pass
-
-    session.findById("wnd[0]/mbar/menu[1]/menu[0]/menu[0]").select()
-
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").currentCellRow = -1
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").selectColumn("VARIANT")
-    session.findById("wnd[1]/tbar[0]/btn[29]").press()
-    session.findById("wnd[2]/usr/ssub%_SUBSCREEN_FREESEL:SAPLSSEL:1105/ctxt%%DYN001-LOW").text = "COSTOVENTAS"
-    session.findById("wnd[2]/tbar[0]/btn[0]").press()
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").selectedRows = "0"
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").doubleClickCurrentCell()
     
-    session.findById("wnd[0]/usr/txtPERIO-LOW").text = "{:03d}.{}".format(m,y)
-    session.findById("wnd[0]/usr/txtPERIO-HIGH").text = "{:03d}.{}".format(m,y)
-    session.findById("wnd[0]/usr/ctxtHZDAT-LOW").text = ""
-    session.findById("wnd[0]/usr/ctxtHZDAT-HIGH").text = ""
-    session.findById("wnd[0]/tbar[1]/btn[8]").press()
     
-    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").setCurrentCell(1,"PRCTR")
-    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectedRows = "14"
-    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").contextMenu()
-    session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectContextMenuItem("&XXL")
-    session.findById("wnd[1]/tbar[0]/btn[0]").press()
-
-    session.findById("wnd[1]/usr/ctxtDY_PATH").text = ruta+"\{}\Sublineas".format(y)
-    fname="{}. Costo de Ventas.xlsx".format(i)
+    session.findById("wnd[1]/usr/ctxtDY_PATH").text = ruta+"\{}\KE24".format(y)
+    fname="{}. ke24.xlsx".format(m)
     session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = fname
     session.findById("wnd[1]/tbar[0]/btn[11]").press()
 
@@ -1334,19 +1286,17 @@ def traslados(session,m,y,ruta,rutaD):
     
     
 def closeExcel(fname,qExcel=parse_args().qExcel):
-    """
+    
     time.sleep(10)
     xl=win32com.client.Dispatch("Excel.Application")
-    print("Libros: {}".format(len(xl.Workbooks)))
     for wb in xl.Workbooks:
-        #print(wb.Name)
         if wb.Name ==fname:
             wb.Close()
             wb=None
     if qExcel:
         xl.Quit()
     xl=None
-    """
+    
 
 
 
@@ -1366,8 +1316,8 @@ def getReport(args,ruta=ruta):
             consumosMB51(session,m,y,ruta)
             produccion(session,m,y,ruta)
             produccionCarnes(session,m,y,ruta)
-            ksb1(session,m,y,ruta)
             maestras(session,ruta)
+            ksb1(session,m,y,ruta)            
             reporteConsumos(m,y,ruta)
             
             if args.cor:
@@ -1387,7 +1337,13 @@ def getReport(args,ruta=ruta):
             ksb1(session,m,y,ruta)
             produccion(session,m,y,ruta)
             produccionCarnes(session,m,y,ruta)
-            
+        
+    if args.ejecAgg:
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            m=tiempo[1]
+            y=tiempo[0]
+            ejecAgg(m,y,ruta)
+    
     if args.ejecCEBE:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             m=tiempo[1]
