@@ -65,56 +65,6 @@ def parse_args():
     return args
     
 
-def sapConnectionBase(cSap):
-    try:
-        path=r"C:\Program Files (x86)\SAP\FrontEnd\SAPgui\saplogon.exe"
-        subprocess.Popen(path)
-        time.sleep(5)
-        SapGuiAuto = win32com.client.GetObject("SAPGUI")
-        application = SapGuiAuto.GetScriptingEngine
-        
-        try:
-            connection = application.Children(0)
-            i=0
-            print("Cerrando {} sesion(es) activa(s)".format(int(connection.children.count)))
-            while int(connection.children.count) > 0 and i <5:
-                session = connection.Children(0)
-                session.findbyid("wnd[0]").close()
-                session.findById("wnd[1]/usr/btnSPOP-OPTION1").press()
-                i=i+1
-            
-            if cSap:
-                return 0
-            
-            connection = application.OpenConnection("RISE - ERP Produccion")
-            time.sleep(5)
-            session = connection.Children(0)
-            session.findById("wnd[1]").maximize()
-            session.findById("wnd[1]/usr/txtRSYST-BNAME").text = "1030611534"
-            session.findById("wnd[1]/usr/pwdRSYST-BCODE").text = "Tebis.1030611534"
-            session.findById("wnd[1]").sendVKey(0)
-            
-            return session            
-            
-        except:
-            connection = application.OpenConnection("RISE - ERP Produccion")
-            time.sleep(5)
-            session = connection.Children(0)
-            session.findById("wnd[0]").maximize()
-            session.findById("wnd[1]/usr/txtRSYST-BNAME").text = "1030611534"
-            session.findById("wnd[1]/usr/pwdRSYST-BCODE").text = "Tebis.1030611534"
-            session.findById("wnd[1]").sendVKey(0)
-            return session
-
-    except pythoncom.com_error as error:
-        hr,msg,exc,arg = error.args
-        
-        if "The 'Sapgui Component' could not be instantiated." == exc[2]:
-            print("No se pudo iniciar SAP, revisa tu conexión a internet/VPN")
-        else:
-            print(exc[2])
-            raise Exception(error)     
-
 
 def sapConnection(cSap):
     path=r"C:\Program Files (x86)\SAP\FrontEnd\SAPgui\saplogon.exe"
@@ -135,7 +85,6 @@ def sapConnection(cSap):
             i=i+1
                 
     except Exception as e:
-        print(e)
         pass
         
     connection = application.OpenConnection("RISE - ERP Produccion")
@@ -417,7 +366,7 @@ def cebeC7(session,m,y,ruta):
             session.findById("wnd[1]/usr/sub:SAPLSPO4:0300/ctxtSVALD-VALUE[0,21]").text = "CO10"
             session.findById("wnd[1]").sendVKey(0)
         except:
-            print("")
+            pass
         
         session.findById("wnd[0]/mbar/menu[2]/menu[0]/menu[0]").select()
         session.findById("wnd[1]/usr/txtENAME-LOW").text = "1030611534"
@@ -460,6 +409,14 @@ def despachoKg(session,m,y,ruta):
     session.findById("wnd[0]/usr/ctxtSP$00010-LOW").text = "7010"
     session.findById("wnd[0]/usr/ctxtSP$00010-HIGH").text = "7900"
     session.findById("wnd[0]/tbar[1]/btn[8]").press()
+    
+    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").pressToolbarContextButton("&MB_VARIANT")
+    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectContextMenuItem("&LOAD")
+    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cmbG51_USPEC_LBOX").key = "X"
+    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").currentCellColumn = "TEXT"
+    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").selectedRows = "0"
+    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").clickCurrentCell()
+    
     session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").setCurrentCell(3,"VGBEL")
     session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectedRows = "3"
     session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").contextMenu()
@@ -474,7 +431,6 @@ def despachoKg(session,m,y,ruta):
     session.findById("wnd[2]/tbar[0]/btn[11]").press()
     session.findById("wnd[1]/tbar[0]/btn[11]").press()
     closeExcel(fname)
-    
     print("{} descargado con éxito".format(fname))
 
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nzsdr_ent"
@@ -484,6 +440,15 @@ def despachoKg(session,m,y,ruta):
     session.findById("wnd[0]/usr/ctxtSP$00010-LOW").text = "7010"
     session.findById("wnd[0]/usr/ctxtSP$00010-HIGH").text = "7900"
     session.findById("wnd[0]/tbar[1]/btn[8]").press()
+    
+    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").pressToolbarContextButton("&MB_VARIANT")
+    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectContextMenuItem("&LOAD")
+    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cmbG51_USPEC_LBOX").key = "X"
+    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").currentCellColumn = "TEXT"
+    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").selectedRows = "0"
+    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").clickCurrentCell()
+
+    
     session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").setCurrentCell(3,"VGBEL")
     session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectedRows = "3"
     session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").contextMenu()
@@ -514,7 +479,7 @@ def cebeCV(session,m,y,ruta):
             session.findById("wnd[1]/usr/sub:SAPLSPO4:0300/ctxtSVALD-VALUE[0,21]").text = "CO10"
             session.findById("wnd[1]").sendVKey(0)
         except:
-            print("")
+            pass
         
         session.findById("wnd[0]/mbar/menu[2]/menu[0]/menu[0]").select()
         session.findById("wnd[1]/usr/txtENAME-LOW").text = "1030611534"
@@ -557,7 +522,7 @@ def cebeIng(session,m,y,ruta):
             session.findById("wnd[1]/usr/sub:SAPLSPO4:0300/ctxtSVALD-VALUE[0,21]").text = "CO10"
             session.findById("wnd[1]").sendVKey(0)
         except:
-            print("")
+            pass
         
         session.findById("wnd[0]/mbar/menu[2]/menu[0]/menu[0]").select()
         session.findById("wnd[1]/usr/txtENAME-LOW").text = "1030611534"
@@ -600,7 +565,7 @@ def cebeGasto(session,m,y,ruta):
             session.findById("wnd[1]/usr/sub:SAPLSPO4:0300/ctxtSVALD-VALUE[0,21]").text = "CO10"
             session.findById("wnd[1]").sendVKey(0)
         except:
-            print("")
+            pass
         
         session.findById("wnd[0]/mbar/menu[2]/menu[0]/menu[0]").select()
         session.findById("wnd[1]/usr/txtENAME-LOW").text = "1030611534"
@@ -829,6 +794,9 @@ def maestras(session,ruta):
     session.findById("wnd[1]/usr/cntlALV_CONTAINER_1/shellcont/shell").currentCellRow = 1
     session.findById("wnd[1]/usr/cntlALV_CONTAINER_1/shellcont/shell").selectedRows = "1"
     session.findById("wnd[1]/usr/cntlALV_CONTAINER_1/shellcont/shell").doubleClickCurrentCell()
+    
+    session.findById("wnd[0]/usr/ctxtMS_MATNR-LOW").text = ""
+    session.findById("wnd[0]/usr/ctxtMS_WERKS-LOW").text = ""
     
     session.findById("wnd[0]").sendVKey(8)
     session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell").setCurrentCell(1,"KTEXT")
@@ -1286,17 +1254,18 @@ def traslados(session,m,y,ruta,rutaD):
     
     
 def closeExcel(fname,qExcel=parse_args().qExcel):
-    
-    time.sleep(10)
-    xl=win32com.client.Dispatch("Excel.Application")
-    for wb in xl.Workbooks:
-        if wb.Name ==fname:
-            wb.Close()
-            wb=None
-    if qExcel:
-        xl.Quit()
-    xl=None
-    
+    try:
+        time.sleep(10)
+        xl=win32com.client.Dispatch("Excel.Application")
+        for wb in xl.Workbooks:
+            if wb.Name ==fname:
+                wb.Close()
+                wb=None
+        if qExcel:
+            xl.Quit()
+        xl=None
+    except:
+        print("No se pudo cerrar: "+fname)
 
 
 
