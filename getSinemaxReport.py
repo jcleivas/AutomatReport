@@ -18,6 +18,8 @@ import warnings
 import win32com.client
 import os
 
+import Correos
+
 
 def download_wait(path_to_downloads):
     seconds = 0
@@ -37,6 +39,12 @@ def month_year_iter( start_month, start_year, end_month, end_year ):
     for ym in range( ym_start, ym_end ):
         y, m = divmod( ym, 12 )
         yield y, m+1
+
+def costoIndustria(x):
+    if x["PLU Industria"]==x["PLU Venta"]:
+        return x["Importe"]
+    else:
+        return x["Unitario Costo (PLU Venta)"]*x["Cantidad"]
         
 def parse_args():
     parser = argparse.ArgumentParser(description="Esta función determina qué reportes descargar")
@@ -44,14 +52,17 @@ def parse_args():
     parser.add_argument("-desp",dest="desp",action="store_true",help="Descarga Reporte de Despachos")
     parser.add_argument("-ing",dest="ing",action="store_true",help="Descarga Reporte de Ingresos")
     parser.add_argument("-mdr",dest="mdr",action="store_true",help="Genera el reporte Modelo de Rentabilidad")
+    parser.add_argument("-cierre",dest="cierre",action="store_true",help="Genera el reporte de cierre")
+    parser.add_argument("-mail",dest="cor",action="store_true",help="Envia reportes por correo")
     parser.add_argument("-f",dest="fechas",nargs=4,help="Permite indicar de qué período es el reporte, si no se incluye se descargaran los reportes del mes en curso")
     dia=datetime.now()
-    parser.set_defaults(pdl=False,desp=False,ing=False,mdr=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
+    parser.set_defaults(pdl=False,desp=False,ing=False,mdr=False,cierre=False,cor=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
     args=parser.parse_args()
     return args
 
 
 def MDRReport(m,y):
+    tiempo=(y,m)
     rCv=r"C:\Users\jcleiva\Documents\Reportes Base\{}\Costo de Ventas\{}. Costo de Ventas Industria CEBE (Agg).xlsx"
     rCvT=r"C:\Users\jcleiva\Documents\Reportes Base\{}\Costo de Ventas\{}. Costo de Ventas Industria CEBE.xlsx"
     rPLUIND=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\P&G Industria\V3\Insumo Plantas Industria Despacho-Venta.xlsx"
@@ -67,32 +78,32 @@ def MDRReport(m,y):
     rPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\PDL\{}{:02d}. PDL.xlsx"    
 
     vCols=['Fecha','Centro de beneficio', 'Número de cuenta', 'Denominación Cuenta',
-       'Material', 'Centro', 'Importe', 'Cantidad', 
-       'PLU Industria', 'PLU Venta', 'Sublinea', 'Desc. Sublinea',
-       'Desc. Plu Venta', 'Unitario Ingreso (PLU Venta)',"PDL",
-       'Unitario Costo (PLU Venta)', 'Desc. Plu Industria',
-       'Unitario Ingreso (PLU Industria)', 'Unitario Costo (PLU Industria)',
-       'Costo Producto', 'Venta Bruta','Venta Neta', 'Denominación CEBE',
-       'Bajas / Averías_(Dir)', 'Depreciación_(Dir)',
-       'Devoluciones Almacenes_(Dir)', 'Merma_(Dir)', 'Variación_(Dir)',
-       'Bajas / Averías_(Mat)', 'Depreciación_(Mat)',
-       'Devoluciones Almacenes_(Mat)', 'Merma_(Mat)', 'Variación_(Mat)',
-       'Bajas / Averías_(Sub)', 'Depreciación_(Sub)',
-       'Devoluciones Almacenes_(Sub)', 'Merma_(Sub)', 'Variación_(Sub)',
-       'Bajas / Averías_(Tr)', 'Depreciación_(Tr)',
-       'Devoluciones Almacenes_(Tr)', 'Merma_(Tr)', 'Variación_(Tr)',
-       'Depreciación Gasto Industria', 'Gasto Industria',
-       'Costo Logístico_(Dir)', 'Costo Logístico_(Mat)',
-       'Costo Logístico_(Sub)', 'Costo Logístico_(Tr)',"Texto breve de material","Descripción Centro",
-      'Destinatario de mercancías','Desc Destinatario de mercancías', 'Marca Formato']
+           'Material', 'Centro', 'Importe', 'Cantidad', 
+           'PLU Industria', 'PLU Venta', 'Sublinea', 'Desc. Sublinea',
+           'Desc. Plu Venta', 'Unitario Ingreso (PLU Venta)','PDL (PLU Venta)', 'PDL (PLU Industria)',
+           'Unitario Costo (PLU Venta)', 'Desc. Plu Industria',
+           'Unitario Ingreso (PLU Industria)', 'Unitario Costo (PLU Industria)',
+           'Costo Producto', 'Venta Bruta','Venta Neta', 'Denominación CEBE',
+           'Bajas / Averías_(Dir)', 'Depreciación_(Dir)',
+           'Devoluciones Almacenes_(Dir)', 'Merma_(Dir)', 'Variación_(Dir)',
+           'Bajas / Averías_(Mat)', 'Depreciación_(Mat)',
+           'Devoluciones Almacenes_(Mat)', 'Merma_(Mat)', 'Variación_(Mat)',
+           'Bajas / Averías_(Sub)', 'Depreciación_(Sub)',
+           'Devoluciones Almacenes_(Sub)', 'Merma_(Sub)', 'Variación_(Sub)',
+           'Bajas / Averías_(Tr)', 'Depreciación_(Tr)',
+           'Devoluciones Almacenes_(Tr)', 'Merma_(Tr)', 'Variación_(Tr)',
+           'Depreciación Gasto Industria', 'Gasto Industria',
+           'Costo Logístico_(Dir)', 'Costo Logístico_(Mat)',
+           'Costo Logístico_(Sub)', 'Costo Logístico_(Tr)',"Texto breve de material","Descripción Centro",
+          'Destinatario de mercancías','Desc Destinatario de mercancías', 'Marca Formato']
 
     colsCebe=["Centro de beneficio","Número de cuenta","Denominación",
               "Importe","Cantidad","Material","Centro"]
     convCebe={"Centro de beneficio":str,"Número de cuenta":str,"Material":str,"Centro":str}
     colsPYG=["Número de Cuenta","Línea P&G"]
     convPYG={"Número de Cuenta":str}
-    colsIng=["Sublinea","Desc. Sublinea","Plu","Desc. Plu","# Unidades Totales","$ Ventas sin impuestos","$ Costo"]
-    convIng={"Sublinea":str,"Plu":str}
+    colsIng=["Sublinea","Desc. Sublinea","Dependencia","Plu","Desc. Plu","# Unidades Totales","$ Ventas sin impuestos","$ Costo"]
+    convIng={"Sublinea":str,"Plu":str,"Dependencia":str}
 
     colsDesp=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","En moneda local centro de beneficio","Cantidad","Documento comercial"]
     convDesp={"Centro de beneficio":str,"Número de cuenta":str,"Material":str,"Centro":str,"Documento comercial":str}
@@ -104,9 +115,11 @@ def MDRReport(m,y):
     cvPDL={"Plu":str,"Dependencia":str}
     
     #Costo de Ventas
-    dfCV=pd.read_excel(rCv.format(y,m),converters=convCebe,usecols=colsCebe)
+    dfCV=pd.read_excel(rCv.format(tiempo[0],tiempo[1]),converters=convCebe,usecols=colsCebe)
     dfCV=dfCV.rename(columns={"Denominación":"Denominación Cuenta"})
+    
     dfCV=dfCV[~dfCV["Centro de beneficio"].isin(["7670","7680"])]
+    
     dfCV["Material"].fillna("No encontrado",inplace=True)
     dfCV["Centro"].fillna("No encontrado",inplace=True)
     dfM=pd.read_excel(rLPYG,usecols=colsPYG,converters=convPYG)
@@ -114,19 +127,26 @@ def MDRReport(m,y):
     dfCV=dfCV.merge(dfM,on="Número de cuenta",how="left")
     dfCV.loc[dfCV["Número de cuenta"].isin(["612014012","612014014"]),"Línea P&G"]="Devoluciones Almacenes"
     dfCV=dfCV[~dfCV["Línea P&G"].isna()]
-    dfDesp=pd.read_excel(rCvT.format(y,m,1),converters=convDesp,usecols=colsDesp)
+
+    dfDesp=pd.read_excel(rCvT.format(tiempo[0],tiempo[1],1),converters=convDesp,usecols=colsDesp)
     dfDesp=dfDesp[dfDesp["Número de cuenta"]=="612014014"]
     dfDesp=dfDesp[~dfDesp["Centro de beneficio"].isin(["7670","7680"])]
     dfDesp["Línea P&G"]='Costo Despacho'
+
     dfDesp=dfDesp.rename(columns={"En moneda local centro de beneficio":"Importe","Denominación":"Denominación Cuenta"})
     dfDesp=dfDesp.groupby(['Centro de beneficio', 'Número de cuenta', "Denominación Cuenta",
                            'Material', 'Centro','Documento comercial', 'Línea P&G']).sum().reset_index()
-    dfDespQ=pd.read_excel(rDesp.format(y,m,1),converters=cvDesp,usecols=cDesp)
-    dfDespQ=pd.concat([dfDespQ,pd.read_excel(rDesp.format(y,m,2),converters=cvDesp,usecols=cDesp)])
+
+    dfDespQ=pd.read_excel(rDesp.format(tiempo[0],tiempo[1],1),converters=cvDesp,usecols=cDesp)
+    dfDespQ=pd.concat([dfDespQ,pd.read_excel(rDesp.format(tiempo[0],tiempo[1],2),converters=cvDesp,usecols=cDesp)])
+
     dfDespQ=dfDespQ.drop_duplicates()
+
     dfDespQ=dfDespQ.rename(columns={"Entrega":"Documento comercial","    # PLU":"PLU Industria"})
+
     if not dfDesp.merge(dfDespQ,on=["Documento comercial","Material"],how="left").shape[0]==dfDesp.shape[0]:
         raise Exception("Despachos por Q inserta filas")
+
     dfDesp=dfDesp.merge(dfDespQ,on=["Documento comercial","Material"],how="left")
 
     del dfDesp["Documento comercial"]
@@ -141,14 +161,30 @@ def MDRReport(m,y):
     dfDesp["Plu Venta"].fillna(dfDesp["PLU Industria"],inplace=True)
     dfDesp=dfDesp.rename(columns={"Plu Venta":"PLU Venta"})
     
+    dfDesp[["Destinatario de mercancías","Desc Destinatario de mercancías"]]=dfDesp["Destinatario de mercancías"].str.split("-",n=1,expand=True)
+    dfDesp["Destinatario de mercancías"]=dfDesp["Destinatario de mercancías"].str.strip()
+    dfDesp["Desc Destinatario de mercancías"]=dfDesp["Desc Destinatario de mercancías"].str.strip()
+
     #Ingreso
 
-    dfIng=pd.read_excel(rIng.format(y,y,m),usecols=colsIng, converters=convIng)
+    dfIng=pd.read_excel(rIng.format(tiempo[0],tiempo[0],tiempo[1]),usecols=colsIng, converters=convIng)
 
-    dfIng=dfIng.rename(columns={"Plu":"PLU Venta","# Unidades Totales":"Cantidad","$ Ventas sin impuestos":"Ingreso","$ Costo":"Costo"})
+    dfIng=dfIng.rename(columns={"Plu":"PLU Venta","# Unidades Totales":"Cantidad",
+                                "$ Ventas sin impuestos":"Ingreso","$ Costo":"Costo",
+                               "Dependencia":"Destinatario de mercancías"})
+
+    dfPDL=pd.read_excel(rPDL.format(tiempo[0],tiempo[0],tiempo[1]),converters=cvPDL,usecols=colsPDL)
+
+    dfPDL=dfPDL.rename(columns={"Plu":"PLU Venta","Dependencia":"Destinatario de mercancías","$ Precio Venta Historico":"PDL"})
+
+    if dfIng.shape[0] != dfIng.merge(dfPDL,how="left",on=["PLU Venta","Destinatario de mercancías"]).shape[0]:
+        raise Exception("PDL inserta filas")
+
+    dfIng=dfIng.merge(dfPDL,how="left",on=["PLU Venta","Destinatario de mercancías"])
+    dfIng["Venta Bruta"]=dfIng["Cantidad"]*dfIng["PDL"]
+    dfIng["Venta Bruta"].fillna(dfIng["Ingreso"],inplace=True)
 
     dfIng=dfIng.groupby(["Sublinea","Desc. Sublinea","PLU Venta","Desc. Plu"],dropna=False).sum().reset_index()
-
     dfIng["Unitario Ingreso"]=dfIng["Ingreso"].divide(dfIng["Cantidad"],fill_value=0.0)
     dfIng["Unitario Ingreso"].replace([np.inf, -np.inf], 0, inplace=True)
     dfIng["Unitario Ingreso"].fillna(0.0,inplace=True)
@@ -157,16 +193,22 @@ def MDRReport(m,y):
     dfIng["Unitario Costo"].replace([np.inf, -np.inf], 0, inplace=True)
     dfIng["Unitario Costo"].fillna(0.0,inplace=True)
 
+    dfIng["PDL"]=dfIng["Venta Bruta"].divide(dfIng["Cantidad"],fill_value=0.0)
+    dfIng["PDL"].replace([np.inf, -np.inf], 0, inplace=True)
+    dfIng["PDL"].fillna(0.0,inplace=True)
+
     del dfIng["Ingreso"]
     del dfIng["Costo"]
     del dfIng["Cantidad"]
+    del dfIng["Venta Bruta"]
 
     if dfDesp.merge(dfIng,on="PLU Venta",how="left").shape[0]!=dfDesp.shape[0]:
         raise Exception("Inserta filas")
 
     dfDesp=dfDesp.merge(dfIng.rename(columns={'Desc. Plu':'Desc. Plu Venta',
                                               "Unitario Ingreso":"Unitario Ingreso (PLU Venta)",
-                                             "Unitario Costo":"Unitario Costo (PLU Venta)"}),on="PLU Venta",how="left")
+                                             "Unitario Costo":"Unitario Costo (PLU Venta)",
+                                             "PDL":"PDL (PLU Venta)"}),on="PLU Venta",how="left")
 
     if dfDesp.merge(dfIng.rename(columns={"PLU Venta":"PLU Industria"}),on="PLU Industria",how="left").shape[0]!=dfDesp.shape[0]:
         raise Exception("Inserta filas")
@@ -176,7 +218,8 @@ def MDRReport(m,y):
 
     dfDesp=dfDesp.merge(dfIng.rename(columns={"PLU Venta":"PLU Industria",'Desc. Plu':'Desc. Plu Industria',
                                              "Unitario Ingreso":"Unitario Ingreso (PLU Industria)",
-                                             "Unitario Costo":"Unitario Costo (PLU Industria)"}),on="PLU Industria",how="left")
+                                             "Unitario Costo":"Unitario Costo (PLU Industria)",
+                                             "PDL":"PDL (PLU Industria)"}),on="PLU Industria",how="left")
 
     for i in dfDesp.columns:
         if dfDesp[i].dtype == "object":
@@ -186,6 +229,7 @@ def MDRReport(m,y):
 
     dfDesp["Costo Producto"]=dfDesp.apply(costoIndustria,axis=1)
     dfDesp["Venta Neta"]=dfDesp["Unitario Ingreso (PLU Venta)"]*dfDesp["Cantidad"]
+    dfDesp["Venta Bruta"]=dfDesp["PDL (PLU Venta)"]*dfDesp["Cantidad"]
 
     dfDesp["Costo Producto"]=dfDesp.apply(costoIndustria,axis=1)
     dfM=pd.read_excel(rCEBE,usecols=["Centro de beneficio","Denominación CEBE"],converters={"Centro de beneficio":str})
@@ -195,7 +239,7 @@ def MDRReport(m,y):
     dfVN=dfDesp[["Centro de beneficio","Denominación CEBE","Material","Venta Neta"]].groupby(["Centro de beneficio","Denominación CEBE","Material"]).sum().reset_index().copy()
 
     dfCV=dfCV.merge(dfM,on="Centro de beneficio",how="left")
-    
+
     #Sacrificio a carnes
 
     dfCV["Centro de beneficio"].replace("7850","7852",inplace=True)
@@ -223,6 +267,15 @@ def MDRReport(m,y):
 
 
     dfCV.columns=cTemp
+
+    if not "Bajas / Averías" in dfCV.columns:
+        dfCV["Bajas / Averías"]=0.0
+
+    if not "Merma" in dfCV.columns:
+        dfCV["Merma"]=0.0
+
+    if not "Depreciación" in dfCV.columns:
+        dfCV["Depreciación"]=0.0
 
     dfCV=dfCV[~((dfCV["Bajas / Averías"]==0.0)&(dfCV["Merma"]==0.0)&(dfCV["Variación"]==0.0)&(dfCV["Depreciación"]==0.0))]
 
@@ -323,7 +376,7 @@ def MDRReport(m,y):
     dfDesp.fillna(0,inplace=True)
 
     #Gasto
-    dfGasto=pd.read_excel(rGasto.format(y,m),
+    dfGasto=pd.read_excel(rGasto.format(tiempo[0],tiempo[1]),
                           usecols=["Número de cuenta","Centro de beneficio","En moneda local centro de beneficio"],
                           converters={"Número de cuenta":str})
 
@@ -341,8 +394,8 @@ def MDRReport(m,y):
     dfCLog=pd.read_excel(cLog,usecols=["Año","Mes","Sublinea","Plu","Costo Logístico"],
                         converters={"Sublinea":str,"Plu":str})
 
-    dfCLog=dfCLog[dfCLog["Año"]==y]
-    dfCLog=dfCLog[dfCLog["Mes"]==m]
+    dfCLog=dfCLog[dfCLog["Año"]==tiempo[0]]
+    dfCLog=dfCLog[dfCLog["Mes"]==tiempo[1]]
     del dfCLog["Mes"]
     del dfCLog["Año"]
 
@@ -448,7 +501,7 @@ def MDRReport(m,y):
     else:
         dfDesp["Costo Logístico_(Tr)"]=0
 
-    dfDesp["Fecha"]=datetime.datetime(y,m,1)
+    dfDesp["Fecha"]=datetime(tiempo[0],tiempo[1],1)
     dfM=pd.read_excel(rMM60,usecols=["Material","Texto breve de material"],converters={"Material":str})
     dfM=dfM.drop_duplicates(subset=["Material"])
     dfDesp=dfDesp.merge(dfM,on=["Material"],how="left")
@@ -458,33 +511,15 @@ def MDRReport(m,y):
 
     del dfDesp["Línea P&G"]
 
-    dfDesp[["Destinatario de mercancías","Desc Destinatario de mercancías"]]=dfDesp["Destinatario de mercancías"].str.split("-",n=1,expand=True)
-    dfDesp["Destinatario de mercancías"]=dfDesp["Destinatario de mercancías"].str.strip()
-    dfDesp["Desc Destinatario de mercancías"]=dfDesp["Desc Destinatario de mercancías"].str.strip()
-
-
-    dfPDL=pd.read_excel(rPDL.format(y,y,m),converters=cvPDL,usecols=colsPDL)
-
-    dfPDL=dfPDL.rename(columns={"Plu":"PLU Venta","Dependencia":"Destinatario de mercancías","$ Precio Venta Historico":"PDL"})
-
-    if not dfDesp.merge(dfPDL,how="left",on=["PLU Venta","Destinatario de mercancías"]).shape[0]==dfDesp.shape[0]:
-        raise Exception("PDL inserta filas")
-
-    dfDesp=dfDesp.merge(dfPDL,how="left",on=["PLU Venta","Destinatario de mercancías"])
-    dfDesp["PDL"].fillna(dfDesp["Unitario Ingreso (PLU Venta)"],inplace=True)
-
-    dfDesp["Venta Bruta"]=dfDesp["PDL"]*dfDesp["Cantidad"]
-
-
     if not set(dfDesp.columns) == set(vCols):
-        raise Exception("Existen columnas diferentes a las permitidas")
         print(list(set(dfDesp.columns) - set(vCols)))
-
+        raise Exception("Existen columnas diferentes a las permitidas")
 
     defCols=['Fecha','Centro de beneficio','Denominación CEBE', 'Número de cuenta', 'Denominación Cuenta',
        'Material', 'Texto breve de material', 'Centro','Descripción Centro', 'Importe', 'Cantidad', 
        'PLU Industria', 'Desc. Plu Industria','Unitario Ingreso (PLU Industria)', 'Unitario Costo (PLU Industria)',
-      'PLU Venta', 'Desc. Plu Venta', 'Unitario Ingreso (PLU Venta)','Unitario Costo (PLU Venta)',"PDL",
+      'PLU Venta', 'Desc. Plu Venta', 'Unitario Ingreso (PLU Venta)','Unitario Costo (PLU Venta)','PDL (PLU Venta)', 
+             'PDL (PLU Industria)',
       'Sublinea', 'Desc. Sublinea','Destinatario de mercancías',"Desc Destinatario de mercancías", 'Marca Formato',
         'Venta Bruta','Venta Neta', 'Costo Producto',  
        'Bajas / Averías_(Dir)', 'Depreciación_(Dir)',
@@ -500,7 +535,7 @@ def MDRReport(m,y):
        'Costo Logístico_(Sub)', 'Costo Logístico_(Tr)']
 
     for i in dfDesp.columns:
-        if i in ['Venta Bruta',"Importe",'Venta Neta', 'Costo Producto', 'Bajas / Averías_(Dir)', 'Depreciación_(Dir)',
+        if i in ["Importe",'Venta Bruta','Venta Neta', 'Costo Producto', 'Bajas / Averías_(Dir)', 'Depreciación_(Dir)',
                    'Devoluciones Almacenes_(Dir)', 'Merma_(Dir)', 'Variación_(Dir)',
                    'Bajas / Averías_(Mat)', 'Depreciación_(Mat)','Devoluciones Almacenes_(Mat)', 'Merma_(Mat)', 'Variación_(Mat)',
                    'Bajas / Averías_(Sub)', 'Depreciación_(Sub)','Devoluciones Almacenes_(Sub)', 'Merma_(Sub)', 'Variación_(Sub)',
@@ -511,9 +546,14 @@ def MDRReport(m,y):
 
 
     dfDesp=dfDesp[defCols]
+    
+    dfDesp["Venta Bruta"]=dfDesp.apply(lambda x: x["Venta Neta"] if x["Venta Neta"] > x["Venta Bruta"] else x["Venta Bruta"], axis=1)
+    dfDesp["Desc. Plu Industria"]=dfDesp.apply(lambda x: x['Texto breve de material'] if x["Desc. Plu Industria"] == "No encontrado" else x["Desc. Plu Industria"], axis=1)
+    dfDesp["Desc. Plu Venta"]=dfDesp.apply(lambda x: x['Texto breve de material'] if x["Desc. Plu Venta"] == "No encontrado" else x["Desc. Plu Venta"], axis=1)
     dfDesp["Desc. Plu Industria"]=dfDesp["Desc. Plu Industria"].str.capitalize()
     dfDesp["Desc. Plu Venta"]=dfDesp["Desc. Plu Venta"].str.capitalize()
-    dfDesp.to_excel(rMDR.format(y,y,m),index=None)
+    
+    dfDesp.to_excel(rMDR.format(tiempo[0],tiempo[0],tiempo[1]),index=None)
     print("Reporte MDR {}{} generado con éxito".format(m,y))
     
     
@@ -576,9 +616,11 @@ def pdlReport(driver,m,y,mypathD,mypathPDL):
 
     prefiles = [f for f in listdir(mypathD) if isfile(join(mypathD, f)) and f[-5:]==".xlsx"]
     
-    element = WebDriverWait(driver, 50).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="3131"]')))
+    element = WebDriverWait(driver, 100).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="3131"]')))
     element.click()
     
+    
+    #//*[@id="mstrWeb_content"]/div/div[2]
     element = WebDriverWait(driver, 200).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="done_eb_ExportStyle"]/a')))
     #element.click()
     
@@ -786,6 +828,81 @@ def getReportSinemax(args):
     if args.mdr:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             MDRReport(tiempo[1],tiempo[0])
+            
+    if args.cierre:
+        
+        path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
+        mypathD=r"C:\Users\jcleiva\Downloads"
+        mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\PDL"
+        service = Service(executable_path=path)
+        options = webdriver.ChromeOptions()
+        driver = webdriver.Chrome(service=service, options=options)
+
+        driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
+
+        usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
+        usr.send_keys("jcleiva")
+        psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
+        psw.send_keys("Teb.1030611534")
+
+        driver.find_element(By.XPATH,'//*[@id="3054"]').click()
+        driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
+        driver.find_element(By.XPATH,'//*[@id="dktpSectionView"]/a[2]/div[1]').click()
+        driver.find_element(By.XPATH,'//*[@id="FolderIcons"]/tbody/tr[2]/td/div/table/tbody/tr/td[2]/a').click()
+
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            pdlReport(driver,tiempo[1],tiempo[0],mypathD,mypathPDL.format(tiempo[0]))
+        
+        path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
+        mypathD=r"C:\Users\jcleiva\Downloads"
+        mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\Despachos"
+        service = Service(executable_path=path)
+        options = webdriver.ChromeOptions()
+        driver = webdriver.Chrome(service=service, options=options)
+
+        driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
+
+        usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
+        usr.send_keys("jcleiva")
+        psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
+        psw.send_keys("Teb.1030611534")
+
+        driver.find_element(By.XPATH,'//*[@id="3054"]').click()
+        driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
+        driver.find_element(By.XPATH,'//*[@id="dktpSectionView"]/a[2]/div[1]').click()
+        driver.find_element(By.XPATH,'//*[@id="FolderIcons"]/tbody/tr[1]/td[2]/div/table/tbody/tr/td[2]/a').click()
+        
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            despReport(driver,tiempo[1],tiempo[0],mypathD,mypathPDL.format(tiempo[0]))
+        
+        path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
+        mypathD=r"C:\Users\jcleiva\Downloads"
+        mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\Ingresos"
+        service = Service(executable_path=path)
+        options = webdriver.ChromeOptions()
+        driver = webdriver.Chrome(service=service, options=options)
+
+        driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
+
+        usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
+        usr.send_keys("jcleiva")
+        psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
+        psw.send_keys("Teb.1030611534")
+
+        driver.find_element(By.XPATH,'//*[@id="3054"]').click()
+        driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
+        driver.find_element(By.XPATH,'//*[@id="dktpSectionView"]/a[2]/div[1]').click()
+        driver.find_element(By.XPATH,'//*[@id="FolderIcons"]/tbody/tr[1]/td[1]/div/table/tbody/tr/td[2]/a').click()
+        
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            ingReport(driver,tiempo[1],tiempo[0],mypathD,mypathPDL.format(tiempo[0]))
+             
+        
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            MDRReport(tiempo[1],tiempo[0])
+        
+        if args.cor:
+            Correos.correoMDR()
     
 if __name__ == "__main__":
     args=parse_args()

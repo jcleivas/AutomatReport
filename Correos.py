@@ -51,13 +51,20 @@ def refreshAndSaveImage(path,fname,path_to_img,fnameImage,tipo):
         xl.Quit()
         return (varMesAnt)
     
+    if tipo == "BajasDesp":
+        wb.Close(True)
+        xl.Quit()        
     
-
+    if tipo == "MDR":
+        wb.Close(True)
+        xl.Quit() 
+    
 def correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,tipo):
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
     mail.To = mailto
     mail.Subject = subject
+    
     if tipo=="Cuenta7":
         att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
         att1.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId1")
@@ -76,6 +83,16 @@ def correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanP
         att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
         
         mail.HTMLBody = html.format(varMesAnt,"MyId0")
+        
+    if tipo == "BajasDesp":
+        
+        att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
+        att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
+        mail.HTMLBody = html
+        
+    if tipo == "MDR":
+        mail.HTMLBody = html
+        
     mail.Send()
     
     
@@ -114,7 +131,7 @@ def correoC7():
     <br>JuanL</p>
     </div>"""
     
-    path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Reportes Industria"
+    path=r"C:\Users\jcleiva\Documents\Reportes"
     fname="Ejecución Cuenta 7 (Lite).xlsx"
     path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"
     fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
@@ -142,7 +159,7 @@ def correoConsumos():
     <p>Cordial saludo,
     <br>JuanL</p>
     """
-    path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Reportes Industria"
+    path=r"C:\Users\jcleiva\Documents\Reportes"
     fname="Reporte de Consumos y Precios.xlsx"
     path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"
     fnameImage=['Consumos.jpg']
@@ -153,6 +170,52 @@ def correoConsumos():
 
     correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt/1000000,0,0,0,0,"Consumos")
     
+
+def correoBajasDesp():
+    html= """
+    <p>
+    Buen día,
+    </p>
+    <p>Adjunto envío los reportes de bajas y despachos de Industria.
+    </p>
+    
+    <p>Cordial saludo,
+    <br>JuanL</p>
+    """
+    path=r"C:\Users\jcleiva\Documents\Reportes"
+    fname="Reporte de Bajas.xlsx"
+    path_to_img=None
+    fnameImage=None
+    refreshAndSaveImage(path,fname,path_to_img,fnameImage,"BajasDesp")
+    
+    fname="Informe de Despachos Industria.xlsx"
+    refreshAndSaveImage(path,fname,path_to_img,fnameImage,"BajasDesp")
+    
+    
+    mailto = 'jcleiva@Grupo-exito.com'
+    subject = 'Informe de Bajas y Despachos'
+    
+    correo(html,mailto,subject,path,["Reporte de Bajas.xlsx","Informe de Despachos Industria.xlsx"],0,0,0,0,0,"BajasDesp")
+    
+def correoMDR():
+    html= """
+    <p>
+    Buen día,
+    </p>
+    <p>Adjunto el Modelo de Rentabilidad de la Industria:
+    <a href="https://grupoexito-my.sharepoint.com/:x:/g/personal/jcleiva_grupo-exito_com/EWAKvrk8vGxHkpzJWNin06IBMwDw6KwLhErMuFCLvfSeJw?e=YuPqTs"><span class=MsoSmartlink><
+    Reporte de Consumos y Precios.xlsx</span></a></p>
+    </p>
+    
+    <p>Cordial saludo,
+    <br>JuanL</p>
+    """
+    path=r"C:\Users\jcleiva\Documents\Reportes"
+    fname="MDR Industria Cad Sum.xlsx"
+    path_to_img=None
+    fnameImage=None
+    refreshAndSaveImage(path,fname,path_to_img,fnameImage,"MDR")
+    correo(html,mailto,subject,path,None,0,0,0,0,0,"BajasDesp")
     
 if __name__ == "__main__":
     correoC7()

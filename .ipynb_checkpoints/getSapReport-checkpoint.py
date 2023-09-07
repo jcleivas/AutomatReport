@@ -57,6 +57,7 @@ def parse_args():
     parser.add_argument("-ke24",dest="ke24",action="store_true",help="Descarga ke24")
     parser.add_argument("-tr",dest="traslado",action="store_true",help="Descarga reportes de traslados")
     parser.add_argument("-eAgg",dest="ejecAgg",action="store_true",help="Genera la ejecución de la 7 agrupada")
+    parser.add_argument("-cierre",dest="cierre",action="store_true",help="Genera los informes de cierre")
     parser.add_argument("-mail",dest="cor",action="store_true",help="Envia reportes por correo")
     dia=datetime.now()
     parser.set_defaults(consumo=False,consumoR=False, ejec=False,ejecCEBE=False,mb51=False,mb51B=False, despachos=False, maestra=False,prod=False,
@@ -826,12 +827,16 @@ def ke24(session,m,y,ruta):
         session.findById("wnd[1]/tbar[0]/btn[0]").press()
     except:
         pass
-
+    
     session.findById("wnd[0]/mbar/menu[1]/menu[0]/menu[0]").select()
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").currentCellRow = 30
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").firstVisibleRow = 23
-    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").selectedRows = "30"
+    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").setCurrentCell(-1,"VTEXT")
+    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").selectColumn("VTEXT")
+    session.findById("wnd[1]/tbar[0]/btn[29]").press()
+    session.findById("wnd[2]/usr/ssub%_SUBSCREEN_FREESEL:SAPLSSEL:1105/ctxt%%DYN001-LOW").text = "Industria sublínea"
+    session.findById("wnd[2]/tbar[0]/btn[0]").press()
+    session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").selectedRows = "0"
     session.findById("wnd[1]/usr/cntlGRID1/shellcont/shell").doubleClickCurrentCell()
+
     session.findById("wnd[0]/usr/txtPERIO-LOW").text = "{:03d}.{}".format(m,y)
     session.findById("wnd[0]/usr/txtPERIO-HIGH").text = "{:03d}.{}".format(m,y)
     
@@ -1306,6 +1311,9 @@ def getReport(args,ruta=ruta):
             ksb1(session,m,y,ruta)
             produccion(session,m,y,ruta)
             produccionCarnes(session,m,y,ruta)
+            
+            if args.cor:
+                Correos.correoC7()
         
     if args.ejecAgg:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
@@ -1322,10 +1330,7 @@ def getReport(args,ruta=ruta):
             cebeCV(session,m,y,ruta)
             cebeIng(session,m,y,ruta)
             cebeGasto(session,m,y,ruta)
-            print('Cierre los exceles correspondientes')
-            x = input()
-            print('Exceles cerrados')
-            
+                        
             ejecCEBEAgg(m,y,ruta)
     
     if args.maestra:
@@ -1369,6 +1374,41 @@ def getReport(args,ruta=ruta):
             ruta=r"C:\Users\jcleiva\Documents\Reportes Base\{}\Traslados"
             rutaD=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Traslados"
             traslados(session,m,y,ruta,rutaD)
+            
+    if args.cierre:
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            m=tiempo[1]
+            y=tiempo[0]
+            """
+            cooisCabeceras(session,m,y,ruta)
+            cooisComponentes(session,m,y,ruta)
+            cooisAdicionales(session,m,y,ruta)
+            consumosMB51(session,m,y,ruta)
+            produccion(session,m,y,ruta)
+            produccionCarnes(session,m,y,ruta)
+            maestras(session,ruta)
+            ksb1(session,m,y,ruta)            
+            reporteConsumos(m,y,ruta)
+            
+            cebeC7(session,m,y,ruta)
+            cebeCV(session,m,y,ruta)
+            cebeIng(session,m,y,ruta)
+            cebeGasto(session,m,y,ruta) 
+            ejecCEBEAgg(m,y,ruta)
+            
+            bajasMB51(session,m,y,ruta)
+            
+            ke24(session,m,y,ruta)
+            
+            despachoKg(session,m,y,ruta)
+            """
+            if args.cor:
+                #Correos.correoC7()
+                #Correos.correoConsumos()
+                Correos.correoBajasDesp()
+                
+            
+            
         
 if __name__ == "__main__":
     
