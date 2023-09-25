@@ -92,7 +92,7 @@ def sapConnection(cSap):
     session = connection.Children(0)
     session.findById("wnd[0]").maximize()
     session.findById("wnd[0]/usr/txtRSYST-BNAME").text = "1030611534"
-    session.findById("wnd[0]/usr/pwdRSYST-BCODE").text = "Tebis.1030611534"
+    session.findById("wnd[0]/usr/pwdRSYST-BCODE").text = "Tebi.1030611534"
     session.findById("wnd[0]").sendVKey(0)
     return session            
 
@@ -766,26 +766,101 @@ def ejecAgg(m,y,ruta):
 def ejecCEBEAgg(m,y,ruta):
     colsEjec=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","Clase mov. MM","En moneda local centro de beneficio","Cantidad"]
     convEjec={"Centro de beneficio":str,"Número de cuenta":str,"Material":str,"Centro":str}
+    cDesp=["Destinatario de mercancías","Entrega","    # PLU","Material","Marca Formato"]
+    cvDesp={"Entrega":str,"    # PLU":str,"Material":str}
+    convEjec={"Centro de beneficio":str,"Número de cuenta":str,"Material":str,"Centro":str}
+    colsTemp=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","Clase mov. MM"]    
+    
     tiempo=(y,m)
     direc={"Costo de Ventas Industria CEBE.xlsx":"Costo de Ventas",
            "Ingreso Industria CEBE.xlsx":"Ingresos",
            "Gasto Industria CEBE.xlsx":"Gasto",
            "Cuenta 7 Industria CEBE.xlsx":"Ejecución"}
-    for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
+    
+    #for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
+    for file in ["Costo de Ventas Industria CEBE.xlsx"]:
         dfEj=pd.read_excel(ruta+"\{}\{}\{}. {}".format(tiempo[0],direc[file],tiempo[1],file),usecols=colsEjec,converters=convEjec)
-
+        if file=="Costo de Ventas Industria CEBE.xlsx":
+            cols=colsEjec+["Documento comercial"]
+            conv=convEjec
+            conv["Documento comercial"]=str
+            cTemp=colsTemp+["Documento comercial"]
+            
+            dfEj=pd.read_excel(ruta+"\{}\{}\{}. {}".format(tiempo[0],direc[file],tiempo[1],file),
+                           usecols=["Fecha de entrada","Centro","Centro de beneficio","En moneda local centro de beneficio"],
+                           converters={"Centro":str,"Centro de beneficio":str})
+            
+            dfEj["Mes"]=dfEj["Fecha de entrada"].dt.month
+            del dfEj["Fecha de entrada"]
+            
+            for i in dfEj.columns:
+                if dfEj[i].dtype == "object":
+                    dfEj[i].fillna("",inplace=True)
+                elif (dfEj[i].dtype == "float64") or (dfEj[i].dtype == "int64"):
+                    dfEj[i].fillna(0.0,inplace=True)
+            
+            dfEj.groupby(["Centro","Centro de beneficio","Mes"],dropna=False).sum().reset_index()
+            dfEj.to_excel(ruta+"\{}\{}\{}. {} (Mes).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5]),index=None)
+            print("Archivo: "+"\{}\{}\{}. {} (Mes).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5])+" generado con éxito")
+            del dfEj
+            
+        else:
+            cols=colsEjec
+            conv=convEjec
+            cTemp=colsTemp
+            
+        dfEj=pd.read_excel(ruta+"\{}\{}\{}. {}".format(tiempo[0],direc[file],tiempo[1],file),
+                           usecols=cols,
+                           converters=conv)
+        
         for i in dfEj.columns:
             if dfEj[i].dtype == "object":
                 dfEj[i].fillna("",inplace=True)
             elif (dfEj[i].dtype == "float64") or (dfEj[i].dtype == "int64"):
                 dfEj[i].fillna(0.0,inplace=True)
-
-        colsTemp=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","Clase mov. MM"]
-        dfEj=dfEj.groupby(colsTemp,dropna=False).sum().reset_index()
+        
+        dfEj=dfEj.groupby(cTemp,dropna=False).sum().reset_index()
+        
         dfEj["Fecha"]=datetime(tiempo[0],tiempo[1],1)
         dfEj=dfEj.rename(columns={"En moneda local centro de beneficio":"Importe"})
+        
+        dfEjTemp=dfEj.copy()
+        del dfEj["Documento comercial"]
+        
+        dfEj.groupby(colsTemp+["Fecha"],dropna=False).sum().reset_index()
+        
         dfEj.to_excel(ruta+"\{}\{}\{}. {} (Agg).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5]),index=None)
         print("Archivo: "+"\{}\{}\{}. {} (Agg).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5])+" generado con éxito")
+        
+        dfEj=dfEjTemp.copy()
+        del dfEjTemp
+        
+        if file=="Costo de Ventas Industria CEBE.xlsx":
+            dfDespQ=pd.read_excel(rDesp.format(y,m,1),converters=cvDesp,usecols=cDesp)
+            dfDespQ=pd.concat([dfDespQ,pd.read_excel(rDesp.format(y,m,2),converters=cvDesp,usecols=cDesp)])
+            dfDespQ=dfDespQ.drop_duplicates()
+            dfDespQ=dfDespQ.rename(columns={"Entrega":"Documento comercial","    # PLU":"PLU Industria"})
+        
+            if not dfEj.merge(dfDespQ,on=["Documento comercial","Material"],how="left").shape[0]==dfEj.shape[0]:
+                raise Exception("Despachos por Q inserta filas")
+
+            dfEj=dfEj.merge(dfDespQ,on=["Documento comercial","Material"],how="left")
+
+            del dfEj["Documento comercial"]
+            dfEj["PLU Industria"]=dfEj["PLU Industria"].str.lstrip("0")
+            
+            for i in dfEj.columns:
+                if dfEj[i].dtype == "object":
+                    dfEj[i].fillna("",inplace=True)
+                elif (dfEj[i].dtype == "float64") or (dfEj[i].dtype == "int64"):
+                    dfEj[i].fillna(0.0,inplace=True)
+            
+            dfEj=dfEj.groupby(['Centro de beneficio', 'Número de cuenta', 'Denominación', 
+                               'Material','Centro', 'Clase mov. MM', 'Fecha',
+                               'Destinatario de mercancías', 'PLU Industria', 'Marca Formato']).sum().reset_index()
+            
+            dfEj.to_excel(ruta+"\{}\{}\{}. {} (PLU).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5]),index=None)
+            print("Archivo: "+"\{}\{}\{}. {} (PLU).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5])+" generado con éxito")
     
 def maestras(session,ruta):
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nmm60"
@@ -860,6 +935,7 @@ def ke24(session,m,y,ruta):
 rutaM=r"C:\Users\jcleiva\Documents\Reportes Base\Maestras"
 rutaR=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes"    
 ruta=r"C:\Users\jcleiva\Documents\Reportes Base"
+rDesp=r"C:\Users\jcleiva\Documents\Reportes Base\{}\Despachos\{}. Despachos {}Q.xlsx"
 
 def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     tiempo=(y,m)
@@ -1326,11 +1402,11 @@ def getReport(args,ruta=ruta):
             m=tiempo[1]
             y=tiempo[0]
             
-            cebeC7(session,m,y,ruta)
+            """cebeC7(session,m,y,ruta)
             cebeCV(session,m,y,ruta)
             cebeIng(session,m,y,ruta)
             cebeGasto(session,m,y,ruta)
-                        
+               """         
             ejecCEBEAgg(m,y,ruta)
     
     if args.maestra:

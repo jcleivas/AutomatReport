@@ -75,27 +75,32 @@ def MDRReport(m,y):
     rCentros=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Maestras\Centros.xlsx"
     rDesp=r"C:\Users\jcleiva\Documents\Reportes Base\{}\Despachos\{}. Despachos {}Q.xlsx"
     rMDR=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\MDR\{}{:02d}. MDR v4.xlsx"
-    rPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\PDL\{}{:02d}. PDL.xlsx"    
-
+    rPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\PDL\{}{:02d}. PDL.xlsx"
+    
+    rMC=r"C:\Users\jcleiva\Documents\Reportes Base\Maestras\Maestra Cuentas.xlsx"
+    mcCols=["Clcoste","TIPO PYG_2"]
+    mcConv={"Clcoste":str}
+    
     vCols=['Fecha','Centro de beneficio', 'Número de cuenta', 'Denominación Cuenta',
-           'Material', 'Centro', 'Importe', 'Cantidad', 
-           'PLU Industria', 'PLU Venta', 'Sublinea', 'Desc. Sublinea',
-           'Desc. Plu Venta', 'Unitario Ingreso (PLU Venta)','PDL (PLU Venta)', 'PDL (PLU Industria)',
-           'Unitario Costo (PLU Venta)', 'Desc. Plu Industria',
-           'Unitario Ingreso (PLU Industria)', 'Unitario Costo (PLU Industria)',
-           'Costo Producto', 'Venta Bruta','Venta Neta', 'Denominación CEBE',
-           'Bajas / Averías_(Dir)', 'Depreciación_(Dir)',
-           'Devoluciones Almacenes_(Dir)', 'Merma_(Dir)', 'Variación_(Dir)',
-           'Bajas / Averías_(Mat)', 'Depreciación_(Mat)',
-           'Devoluciones Almacenes_(Mat)', 'Merma_(Mat)', 'Variación_(Mat)',
-           'Bajas / Averías_(Sub)', 'Depreciación_(Sub)',
-           'Devoluciones Almacenes_(Sub)', 'Merma_(Sub)', 'Variación_(Sub)',
-           'Bajas / Averías_(Tr)', 'Depreciación_(Tr)',
-           'Devoluciones Almacenes_(Tr)', 'Merma_(Tr)', 'Variación_(Tr)',
-           'Depreciación Gasto Industria', 'Gasto Industria',
-           'Costo Logístico_(Dir)', 'Costo Logístico_(Mat)',
-           'Costo Logístico_(Sub)', 'Costo Logístico_(Tr)',"Texto breve de material","Descripción Centro",
-          'Destinatario de mercancías','Desc Destinatario de mercancías', 'Marca Formato']
+       'Material', 'Centro', 'Importe', 'Cantidad', 
+       'PLU Industria', 'PLU Venta', 'Sublinea', 'Desc. Sublinea',
+       'Desc. Plu Venta', 'Unitario Ingreso (PLU Venta)','PDL (PLU Venta)', 'PDL (PLU Industria)',
+       'Unitario Costo (PLU Venta)', 'Desc. Plu Industria',
+       'Unitario Ingreso (PLU Industria)', 'Unitario Costo (PLU Industria)',
+       'Costo Producto', 'Venta Bruta','Venta Neta', 'Denominación CEBE',
+       'Bajas / Averías_(Dir)', 'Depreciación_(Dir)',
+       'Devoluciones Almacenes_(Dir)', 'Merma_(Dir)', 'Variación_(Dir)',
+       'Bajas / Averías_(Mat)', 'Depreciación_(Mat)',
+       'Devoluciones Almacenes_(Mat)', 'Merma_(Mat)', 'Variación_(Mat)',
+       'Bajas / Averías_(Sub)', 'Depreciación_(Sub)',
+       'Devoluciones Almacenes_(Sub)', 'Merma_(Sub)', 'Variación_(Sub)',
+       'Bajas / Averías_(Tr)', 'Depreciación_(Tr)',
+       'Devoluciones Almacenes_(Tr)', 'Merma_(Tr)', 'Variación_(Tr)',
+       'Depreciación Gasto Industria', 'Gasto Industria',
+       'Costo Logístico_(Dir)', 'Costo Logístico_(Mat)',
+       'Costo Logístico_(Sub)', 'Costo Logístico_(Tr)',"Texto breve de material","Descripción Centro",
+      'Destinatario de mercancías','Desc Destinatario de mercancías', 'Marca Formato',
+      "Part. Consumo","Part. PE"]
 
     colsCebe=["Centro de beneficio","Número de cuenta","Denominación",
               "Importe","Cantidad","Material","Centro"]
@@ -113,8 +118,12 @@ def MDRReport(m,y):
 
     colsPDL=["Plu","Dependencia","$ Precio Venta Historico"]
     cvPDL={"Plu":str,"Dependencia":str}
+
+    rMC=r"C:\Users\jcleiva\Documents\Reportes Base\Maestras\Maestra Cuentas.xlsx"
+    mcCols=["Clcoste","TIPO PYG_2"]
+    mcConv={"Clcoste":str}
     
-    #Costo de Ventas
+    
     dfCV=pd.read_excel(rCv.format(tiempo[0],tiempo[1]),converters=convCebe,usecols=colsCebe)
     dfCV=dfCV.rename(columns={"Denominación":"Denominación Cuenta"})
     
@@ -127,7 +136,7 @@ def MDRReport(m,y):
     dfCV=dfCV.merge(dfM,on="Número de cuenta",how="left")
     dfCV.loc[dfCV["Número de cuenta"].isin(["612014012","612014014"]),"Línea P&G"]="Devoluciones Almacenes"
     dfCV=dfCV[~dfCV["Línea P&G"].isna()]
-
+    
     dfDesp=pd.read_excel(rCvT.format(tiempo[0],tiempo[1],1),converters=convDesp,usecols=colsDesp)
     dfDesp=dfDesp[dfDesp["Número de cuenta"]=="612014014"]
     dfDesp=dfDesp[~dfDesp["Centro de beneficio"].isin(["7670","7680"])]
@@ -183,7 +192,8 @@ def MDRReport(m,y):
     dfIng=dfIng.merge(dfPDL,how="left",on=["PLU Venta","Destinatario de mercancías"])
     dfIng["Venta Bruta"]=dfIng["Cantidad"]*dfIng["PDL"]
     dfIng["Venta Bruta"].fillna(dfIng["Ingreso"],inplace=True)
-
+    #acá
+    del dfIng["Destinatario de mercancías"]
     dfIng=dfIng.groupby(["Sublinea","Desc. Sublinea","PLU Venta","Desc. Plu"],dropna=False).sum().reset_index()
     dfIng["Unitario Ingreso"]=dfIng["Ingreso"].divide(dfIng["Cantidad"],fill_value=0.0)
     dfIng["Unitario Ingreso"].replace([np.inf, -np.inf], 0, inplace=True)
@@ -254,7 +264,7 @@ def MDRReport(m,y):
 
     del dfCV["Denominación CEBE"]
     del dfCV["Centro"]
-
+    
     dfCV=pd.pivot_table(dfCV,values=["Importe"], index=["Centro de beneficio","Material"],
                        columns=["Línea P&G"], aggfunc='sum',dropna=False).reset_index().fillna(0)
 
@@ -277,7 +287,7 @@ def MDRReport(m,y):
     if not "Depreciación" in dfCV.columns:
         dfCV["Depreciación"]=0.0
 
-    dfCV=dfCV[~((dfCV["Bajas / Averías"]==0.0)&(dfCV["Merma"]==0.0)&(dfCV["Variación"]==0.0)&(dfCV["Depreciación"]==0.0))]
+    dfCV=dfCV[~((dfCV["Bajas / Averías"]==0.0)&(dfCV["Merma"]==0.0)&(dfCV["Variación"]==0.0)&(dfCV["Depreciación"]==0.0)&(dfCV["Devoluciones Almacenes"]==0.0))]
 
     del dfVN["Denominación CEBE"]
 
@@ -303,7 +313,7 @@ def MDRReport(m,y):
         if "_ratio" in i:
             dfDesp[i[:-6]+"_(Dir)"]=dfDesp[i]*dfDesp["Venta Neta"]
             del dfDesp[i]
-
+    
     # material
     del dfCV["Venta Neta"]
     dfCV=dfCV.merge(dfVN[["Material","Venta Neta"]].groupby(["Material"]).sum(),on="Material",how="left")
@@ -511,10 +521,6 @@ def MDRReport(m,y):
 
     del dfDesp["Línea P&G"]
 
-    if not set(dfDesp.columns) == set(vCols):
-        print(list(set(dfDesp.columns) - set(vCols)))
-        raise Exception("Existen columnas diferentes a las permitidas")
-
     defCols=['Fecha','Centro de beneficio','Denominación CEBE', 'Número de cuenta', 'Denominación Cuenta',
        'Material', 'Texto breve de material', 'Centro','Descripción Centro', 'Importe', 'Cantidad', 
        'PLU Industria', 'Desc. Plu Industria','Unitario Ingreso (PLU Industria)', 'Unitario Costo (PLU Industria)',
@@ -532,7 +538,8 @@ def MDRReport(m,y):
        'Devoluciones Almacenes_(Tr)', 'Merma_(Tr)', 'Variación_(Tr)',
        'Depreciación Gasto Industria', 'Gasto Industria',
        'Costo Logístico_(Dir)', 'Costo Logístico_(Mat)',
-       'Costo Logístico_(Sub)', 'Costo Logístico_(Tr)']
+       'Costo Logístico_(Sub)', 'Costo Logístico_(Tr)',
+        "Part. Consumo","Part. PE"]
 
     for i in dfDesp.columns:
         if i in ["Importe",'Venta Bruta','Venta Neta', 'Costo Producto', 'Bajas / Averías_(Dir)', 'Depreciación_(Dir)',
@@ -544,7 +551,95 @@ def MDRReport(m,y):
                    'Costo Logístico_(Sub)', 'Costo Logístico_(Tr)']:
             dfDesp[i]=dfDesp[i]/1000000
 
+    dfMC=pd.read_excel(rMC,usecols=mcCols,converters=mcConv)
 
+    dfMC=dfMC[dfMC["TIPO PYG_2"]=="Variación"]
+
+    del dfMC["TIPO PYG_2"]
+
+    dfPE=pd.read_excel(rCvT.format(tiempo[0],tiempo[1],1),converters=convDesp,usecols=colsDesp+["Fecha de entrada"])
+
+    dfPE=dfPE[dfPE["Número de cuenta"].isin(dfMC["Clcoste"].unique())]
+
+    dfPE=dfPE[~dfPE["Centro de beneficio"].isin(["7670","7680"])]
+    dfPE=dfPE[~dfPE["Centro"].isin(["7300","7310"])]
+
+    dfPE["Mes"]=dfPE["Fecha de entrada"].dt.month
+
+    if tiempo[1]==12:
+        meses=[tiempo[1],1]
+    else:
+        meses=[tiempo[1],tiempo[1]+1]
+
+    if not set(dfPE["Mes"].unique()== set(meses)):
+        print(list(set(dfPE["Mes"].unique()) - set(meses)))
+        raise Exception("Documentos en meses no contemplados")
+
+    dfPE=dfPE[["Mes","Centro","Centro de beneficio","En moneda local centro de beneficio"]]
+
+    dfPE["Centro"].replace("7170","7040",inplace=True)
+    dfPE["Centro"].replace("7200","7040",inplace=True)
+    
+    dfPE=dfPE.groupby(["Centro de beneficio","Centro","Mes"],dropna=False).agg("sum").reset_index()
+
+    mC=dfPE[["Centro de beneficio","Centro"]].drop_duplicates().copy()
+
+    mC=mC[~mC["Centro"].isna()]
+
+    mC=mC.rename(columns={"Centro":"Centro C"})
+    mC=mC.drop_duplicates(subset=["Centro de beneficio"],keep="first")
+    if not dfPE.merge(mC,how="left",on=["Centro de beneficio"]).shape[0]==dfPE.shape[0]:
+        raise Exception("Maestra mC inserta filas")
+
+    dfPE=dfPE.merge(mC,how="left",on=["Centro de beneficio"])
+
+    dfPE["Centro"].fillna(dfPE["Centro C"],inplace=True)
+    del dfPE["Centro C"]
+    #acá
+    del dfPE["Centro de beneficio"]
+    dfPE=dfPE.groupby(["Centro","Mes"],dropna=False).agg("sum").reset_index()
+
+    dfPE["Centro"].fillna("Sin centro",inplace=True)
+    dfPE=pd.pivot_table(dfPE,values=["En moneda local centro de beneficio"],index=["Centro"],columns=["Mes"]).reset_index().fillna(0)
+
+    cTemp=[]
+    for cols in dfPE.columns:
+        if cols[1]!="":
+            cTemp.append(cols[1])
+        else:
+            cTemp.append(cols[0])
+
+    dfPE.columns=cTemp
+
+    dfPE.loc[:,"Tipo"]=dfPE.apply(lambda x: "Directo" if x["Centro"] in dfDesp["Centro"].unique() else "Indirecto",axis=1)
+    
+    val=round(dfPE[meses].sum().sum())
+
+    for i in meses:
+        #dfPE[i]=dfPE.loc[:,i]*dfPE.loc[:,i].sum()/dfPE.loc[dfPE["Tipo"]=="Directo",i].sum()
+        dfPE["{}+".format(i)]=dfPE.loc[:,i].sum().sum()/dfPE.loc[dfPE["Tipo"]=="Directo",i].sum().sum()
+        dfPE[i]=dfPE[i]*dfPE["{}+".format(i)]
+        del dfPE["{}+".format(i)]
+
+    if not val==round(dfPE.loc[dfPE["Tipo"]=="Directo"][meses].sum().sum()):
+        raise Exception("Error en asignación de indirectos")
+
+    dfPE["Total"]=dfPE[meses].sum(axis=1)
+
+    dfPE=dfPE[dfPE["Tipo"]=="Directo"]
+
+    dfPE["Part. Consumo"]=dfPE.loc[:,meses[0]].divide(dfPE["Total"])
+    dfPE["Part. PE"]=dfPE.loc[:,meses[1]].divide(dfPE["Total"])
+
+    if not dfDesp.merge(dfPE[["Centro","Part. Consumo","Part. PE"]],on=["Centro"],how="left").shape[0]==dfDesp.shape[0]:
+        raise Exception("Var por punto de equilibrio inserta filas")
+
+    dfDesp=dfDesp.merge(dfPE[["Centro","Part. Consumo","Part. PE"]],on=["Centro"],how="left")
+    
+    if not set(dfDesp.columns) == set(vCols):
+        print(list(set(dfDesp.columns) - set(vCols)))
+        raise Exception("Existen columnas diferentes a las permitidas")
+    
     dfDesp=dfDesp[defCols]
     
     dfDesp["Venta Bruta"]=dfDesp.apply(lambda x: x["Venta Neta"] if x["Venta Neta"] > x["Venta Bruta"] else x["Venta Bruta"], axis=1)
@@ -554,7 +649,8 @@ def MDRReport(m,y):
     dfDesp["Desc. Plu Venta"]=dfDesp["Desc. Plu Venta"].str.capitalize()
     
     dfDesp.to_excel(rMDR.format(tiempo[0],tiempo[0],tiempo[1]),index=None)
-    print("Reporte MDR {}{} generado con éxito".format(m,y))
+    
+    print("Reporte MDR {}-{} generado con éxito".format(m,y))
     
     
     
