@@ -681,7 +681,7 @@ def titlesReport(path,filename,tipo):
     if tipo=="Ingresos":
         columns=["Sublinea","Desc. Sublinea","Clase Marca","Marca","Desc. Marca","Plu","Desc. Plu","Formato",
                  "Desc. Formato","Cadena","Desc. Cadena","Dependencia","Desc. Dependencia","Proveedor","Desc. Proveedor",
-                 "# Unidades Totales","$ Ventas sin impuestos","$ Costo"]
+                 "# Unidades Totales","$ Ventas sin impuestos","$ Costo","$ Dcto Pos sin Impuestos","$ Valor Impuesto Consumo Ventas","$ Valor Iva Ventas"]
         rows=6
         conv={"Sublinea":str,"Marca":str,"Plu":str,"Dependencia":str,"Proveedor":str}
         
@@ -696,7 +696,7 @@ def pdlReport(driver,m,y,mypathD,mypathPDL):
     element.click()
     #driver.find_element(By.XPATH,'//*[@id="id_mstr247"]/div[2]/div/div/div[2]/div/a[4]').click()
     driver.find_element(By.XPATH,'//*[@id="id_mstr264_txt"]').clear()
-    driver.find_element(By.XPATH,'//*[@id="id_mstr264_txt"]').send_keys("01/{:02d}/{}".format(m,y))
+    driver.find_element(By.XPATH,'//*[@id="id_mstr264_txt"]').send_keys("{:02d}/01/{}".format(m,y))
     element = WebDriverWait(driver, 50).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="id_mstr266"]')))
     element.click()
     #driver.find_element(By.XPATH,'//*[@id="id_mstr266"]').click()
@@ -865,13 +865,13 @@ def getReportSinemax(args):
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Teb.1030611534")
+        psw.send_keys("Tebi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
         driver.find_element(By.XPATH,'//*[@id="dktpSectionView"]/a[2]/div[1]').click()
-        driver.find_element(By.XPATH,'//*[@id="FolderIcons"]/tbody/tr[2]/td/div/table/tbody/tr/td[2]/a').click()
-
+        driver.find_element(By.XPATH,'//*[@id="FolderIcons"]/tbody/tr[3]/td/div/table/tbody/tr/td[2]/a').click()
+        
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             pdlReport(driver,tiempo[1],tiempo[0],mypathD,mypathPDL.format(tiempo[0]))
         
@@ -888,7 +888,7 @@ def getReportSinemax(args):
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Teb.1030611534")
+        psw.send_keys("Tebi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -911,7 +911,7 @@ def getReportSinemax(args):
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Teb.1030611534")
+        psw.send_keys("Tebi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -939,7 +939,7 @@ def getReportSinemax(args):
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Teb.1030611534")
+        psw.send_keys("Tebi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -961,7 +961,7 @@ def getReportSinemax(args):
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Teb.1030611534")
+        psw.send_keys("Tebi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -983,7 +983,7 @@ def getReportSinemax(args):
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Teb.1030611534")
+        psw.send_keys("Tebi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()

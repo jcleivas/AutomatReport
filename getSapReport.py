@@ -57,6 +57,7 @@ def parse_args():
     parser.add_argument("-ke24",dest="ke24",action="store_true",help="Descarga ke24")
     parser.add_argument("-tr",dest="traslado",action="store_true",help="Descarga reportes de traslados")
     parser.add_argument("-eAgg",dest="ejecAgg",action="store_true",help="Genera la ejecución de la 7 agrupada")
+    parser.add_argument("-cSTD",dest="cSTD",action="store_true",help="Descarga costo estándars")
     parser.add_argument("-cierre",dest="cierre",action="store_true",help="Genera los informes de cierre")
     parser.add_argument("-mail",dest="cor",action="store_true",help="Envia reportes por correo")
     dia=datetime.now()
@@ -433,39 +434,42 @@ def despachoKg(session,m,y,ruta):
     session.findById("wnd[1]/tbar[0]/btn[11]").press()
     closeExcel(fname)
     print("{} descargado con éxito".format(fname))
+    
+    
+    if datetime(j,i,16) <= datetime.now():
+        session.findById("wnd[0]/tbar[0]/okcd").text = "/nzsdr_ent"
+        session.findById("wnd[0]").sendVKey(0)
+        session.findById("wnd[0]/usr/ctxtSP$00013-LOW").text = "{:02d}.{:02d}.{}".format(16,i,j)
+        session.findById("wnd[0]/usr/ctxtSP$00013-HIGH").text = "{:02d}.{:02d}.{}".format(dias,i,j)
+        session.findById("wnd[0]/usr/ctxtSP$00010-LOW").text = "7010"
+        session.findById("wnd[0]/usr/ctxtSP$00010-HIGH").text = "7900"
+        session.findById("wnd[0]/tbar[1]/btn[8]").press()
 
-    session.findById("wnd[0]/tbar[0]/okcd").text = "/nzsdr_ent"
-    session.findById("wnd[0]").sendVKey(0)
-    session.findById("wnd[0]/usr/ctxtSP$00013-LOW").text = "{:02d}.{:02d}.{}".format(16,i,j)
-    session.findById("wnd[0]/usr/ctxtSP$00013-HIGH").text = "{:02d}.{:02d}.{}".format(dias,i,j)
-    session.findById("wnd[0]/usr/ctxtSP$00010-LOW").text = "7010"
-    session.findById("wnd[0]/usr/ctxtSP$00010-HIGH").text = "7900"
-    session.findById("wnd[0]/tbar[1]/btn[8]").press()
-    
-    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").pressToolbarContextButton("&MB_VARIANT")
-    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectContextMenuItem("&LOAD")
-    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cmbG51_USPEC_LBOX").key = "X"
-    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").currentCellColumn = "TEXT"
-    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").selectedRows = "0"
-    session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").clickCurrentCell()
+        session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").pressToolbarContextButton("&MB_VARIANT")
+        session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectContextMenuItem("&LOAD")
+        session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cmbG51_USPEC_LBOX").key = "X"
+        session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").currentCellColumn = "TEXT"
+        session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").selectedRows = "0"
+        session.findById("wnd[1]/usr/ssubD0500_SUBSCREEN:SAPLSLVC_DIALOG:0501/cntlG51_CONTAINER/shellcont/shell").clickCurrentCell()
 
+
+        session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").setCurrentCell(3,"VGBEL")
+        session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectedRows = "3"
+        session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").contextMenu()
+        session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectContextMenuItem("&XXL")
+        session.findById("wnd[1]/tbar[0]/btn[0]").press()
+        session.findById("wnd[1]").sendVKey(4)
+        session.findById("wnd[2]/usr/ctxtDY_PATH").text = ruta+"\{}\Despachos".format(j)
+
+        fname="{}. Despachos 2Q.xlsx".format(i)
+
+        session.findById("wnd[2]/usr/ctxtDY_FILENAME").text = fname
+        session.findById("wnd[2]/tbar[0]/btn[11]").press()
+        session.findById("wnd[1]/tbar[0]/btn[11]").press()
+        closeExcel(fname)
+
+        print("{} descargado con éxito".format(fname))
     
-    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").setCurrentCell(3,"VGBEL")
-    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectedRows = "3"
-    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").contextMenu()
-    session.findById("wnd[0]/usr/cntlCONTAINER/shellcont/shell").selectContextMenuItem("&XXL")
-    session.findById("wnd[1]/tbar[0]/btn[0]").press()
-    session.findById("wnd[1]").sendVKey(4)
-    session.findById("wnd[2]/usr/ctxtDY_PATH").text = ruta+"\{}\Despachos".format(j)
-    
-    fname="{}. Despachos 2Q.xlsx".format(i)
-    
-    session.findById("wnd[2]/usr/ctxtDY_FILENAME").text = fname
-    session.findById("wnd[2]/tbar[0]/btn[11]").press()
-    session.findById("wnd[1]/tbar[0]/btn[11]").press()
-    closeExcel(fname)
-    
-    print("{} descargado con éxito".format(fname))
     
 def cebeCV(session,m,y,ruta):
     j=y
@@ -635,12 +639,7 @@ def ksb1(session,m,y,ruta):
         
         closeExcel(fname)
         print("{} descargado con éxito".format(fname))
-        
-        print('Cierre los exceles correspondientes')
-        x = input()
-        print('Exceles cerrados')
-        
-        ejecAgg(m,y,ruta)
+
 
 def ejecAgg(m,y,ruta):
     colsEjec=["Clase de coste","Denom.clase de coste","Centro de coste","Denominación del objeto",
@@ -777,8 +776,8 @@ def ejecCEBEAgg(m,y,ruta):
            "Gasto Industria CEBE.xlsx":"Gasto",
            "Cuenta 7 Industria CEBE.xlsx":"Ejecución"}
     
-    #for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
-    for file in ["Costo de Ventas Industria CEBE.xlsx"]:
+    for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
+    #for file in ["Costo de Ventas Industria CEBE.xlsx"]:
         dfEj=pd.read_excel(ruta+"\{}\{}\{}. {}".format(tiempo[0],direc[file],tiempo[1],file),usecols=colsEjec,converters=convEjec)
         if file=="Costo de Ventas Industria CEBE.xlsx":
             cols=colsEjec+["Documento comercial"]
@@ -787,8 +786,8 @@ def ejecCEBEAgg(m,y,ruta):
             cTemp=colsTemp+["Documento comercial"]
             
             dfEj=pd.read_excel(ruta+"\{}\{}\{}. {}".format(tiempo[0],direc[file],tiempo[1],file),
-                           usecols=["Fecha de entrada","Centro","Centro de beneficio","En moneda local centro de beneficio"],
-                           converters={"Centro":str,"Centro de beneficio":str})
+                           usecols=["Fecha de entrada","Centro","Centro de beneficio","Número de cuenta","En moneda local centro de beneficio"],
+                           converters={"Centro":str,"Centro de beneficio":str,"Número de cuenta":str})
             
             dfEj["Mes"]=dfEj["Fecha de entrada"].dt.month
             del dfEj["Fecha de entrada"]
@@ -799,7 +798,7 @@ def ejecCEBEAgg(m,y,ruta):
                 elif (dfEj[i].dtype == "float64") or (dfEj[i].dtype == "int64"):
                     dfEj[i].fillna(0.0,inplace=True)
             
-            dfEj.groupby(["Centro","Centro de beneficio","Mes"],dropna=False).sum().reset_index()
+            dfEj.groupby(["Centro","Centro de beneficio","Número de cuenta","Mes"],dropna=False).sum().reset_index()
             dfEj.to_excel(ruta+"\{}\{}\{}. {} (Mes).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5]),index=None)
             print("Archivo: "+"\{}\{}\{}. {} (Mes).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5])+" generado con éxito")
             del dfEj
@@ -825,7 +824,8 @@ def ejecCEBEAgg(m,y,ruta):
         dfEj=dfEj.rename(columns={"En moneda local centro de beneficio":"Importe"})
         
         dfEjTemp=dfEj.copy()
-        del dfEj["Documento comercial"]
+        if file=="Costo de Ventas Industria CEBE.xlsx":
+            del dfEj["Documento comercial"]
         
         dfEj.groupby(colsTemp+["Fecha"],dropna=False).sum().reset_index()
         
@@ -837,10 +837,16 @@ def ejecCEBEAgg(m,y,ruta):
         
         if file=="Costo de Ventas Industria CEBE.xlsx":
             dfDespQ=pd.read_excel(rDesp.format(y,m,1),converters=cvDesp,usecols=cDesp)
-            dfDespQ=pd.concat([dfDespQ,pd.read_excel(rDesp.format(y,m,2),converters=cvDesp,usecols=cDesp)])
+            
+            if datetime(y,m,16) <= datetime.now():
+                dfDespQ=pd.concat([dfDespQ,pd.read_excel(rDesp.format(y,m,2),converters=cvDesp,usecols=cDesp)])
+            
             dfDespQ=dfDespQ.drop_duplicates()
             dfDespQ=dfDespQ.rename(columns={"Entrega":"Documento comercial","    # PLU":"PLU Industria"})
-        
+            
+            #ajuste julio 2022
+            dfDespQ=dfDespQ[~((dfDespQ["Documento comercial"]=="210465132")&(dfDespQ["Material"]=="5006943")&(dfDespQ["PLU Industria"].isna()))]
+            
             if not dfEj.merge(dfDespQ,on=["Documento comercial","Material"],how="left").shape[0]==dfEj.shape[0]:
                 raise Exception("Despachos por Q inserta filas")
 
@@ -861,7 +867,8 @@ def ejecCEBEAgg(m,y,ruta):
             
             dfEj.to_excel(ruta+"\{}\{}\{}. {} (PLU).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5]),index=None)
             print("Archivo: "+"\{}\{}\{}. {} (PLU).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5])+" generado con éxito")
-    
+
+            
 def maestras(session,ruta):
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nmm60"
     session.findById("wnd[0]").sendVKey(0)
@@ -1349,12 +1356,48 @@ def closeExcel(fname,qExcel=parse_args().qExcel):
         print("No se pudo cerrar: "+fname)
 
 
+def cSTD(session,m,y,ruta):
+    session.findById("wnd[0]/tbar[0]/okcd").text = "/ns_p99_41000111"
+    session.findById("wnd[0]").sendVKey(0)
+    session.findById("wnd[0]/usr/ctxtSO_KLVAR-LOW").text = "Z001"
+    session.findById("wnd[0]/usr/ctxtSO_DATE-LOW").text = "01.{:02d}.{}".format(m,y)
+    session.findById("wnd[0]/usr/btn%_SO_WERKS_%_APP_%-VALU_PUSH").press()
+    session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpINTL").select()
+    session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpINTL/ssubSCREEN_HEADER:SAPLALDB:3020/tblSAPLALDBINTERVAL/ctxtRSCSEL_255-ILOW_I[1,0]").text = "7000"
+    session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpINTL/ssubSCREEN_HEADER:SAPLALDB:3020/tblSAPLALDBINTERVAL/ctxtRSCSEL_255-IHIGH_I[2,0]").text = "7400"
+    session.findById("wnd[1]/tbar[0]/btn[8]").press()
+    session.findById("wnd[0]/tbar[1]/btn[8]").press()
+    
+    try:
+        session.findById("wnd[1]/usr/btnSPOP-OPTION1").press()
+        session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").setCurrentCell(5,"KALO1-WERKS")
+        session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").contextMenu()
+        session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").setCurrentCell(0,"KALO1-MATNR")
+        session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").contextMenu()
+        session.findById("wnd[0]/usr/cntlGRID1/shellcont/shell/shellcont[1]/shell").selectContextMenuItem("&XXL")
+        session.findById("wnd[1]/tbar[0]/btn[0]").press()
+        
+        session.findById("wnd[1]/usr/ctxtDY_PATH").text = ruta+"\{}\Costo STD".format(y)
+        fname="{}. Costo STD.xlsx".format(m)
+        session.findById("wnd[1]/usr/ctxtDY_FILENAME").text = fname
+        session.findById("wnd[1]/tbar[0]/btn[11]").press()
 
+        closeExcel(fname)    
+        print("{} descargado con éxito".format(fname))
+
+    except:
+        print("No hay costos liberados para el periodo 01/{:02d}/{}".format(m,y))
+    
+    
+    
 def getReport(args,ruta=ruta):
     
-    if args.consumo or args.ejec or args.ejecCEBE or args.maestra or args.mb51 or args.mb51B or args.prod or args.despachos or args.ke24 or args.traslado:
+    if args.consumo or args.ejec or args.ejecCEBE or args.maestra or args.mb51 or args.mb51B or args.prod or args.despachos or args.ke24 or args.traslado or args.cSTD or args.cierre:
         session=sapConnection(False)
-    
+    if args.cSTD:
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            cSTD(session,tiempo[1],tiempo[0],ruta)
+            
     if args.consumo:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             m=tiempo[1]
@@ -1367,11 +1410,18 @@ def getReport(args,ruta=ruta):
             produccion(session,m,y,ruta)
             produccionCarnes(session,m,y,ruta)
             maestras(session,ruta)
-            ksb1(session,m,y,ruta)            
+            ksb1(session,m,y,ruta)
+            
+            print('Cierre los exceles correspondientes')
+            x = input()
+            print('Exceles cerrados')
+
+            ejecAgg(m,y,ruta)
+            
             reporteConsumos(m,y,ruta)
             
             if args.cor:
-                Correos.correoC7()
+                Correos.correoC7(2)
                 Correos.correoConsumos()
     
     if args.consumoR:
@@ -1389,7 +1439,7 @@ def getReport(args,ruta=ruta):
             produccionCarnes(session,m,y,ruta)
             
             if args.cor:
-                Correos.correoC7()
+                Correos.correoC7(2)
         
     if args.ejecAgg:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
@@ -1402,11 +1452,11 @@ def getReport(args,ruta=ruta):
             m=tiempo[1]
             y=tiempo[0]
             
-            """cebeC7(session,m,y,ruta)
+            cebeC7(session,m,y,ruta)
             cebeCV(session,m,y,ruta)
             cebeIng(session,m,y,ruta)
             cebeGasto(session,m,y,ruta)
-               """         
+          
             ejecCEBEAgg(m,y,ruta)
     
     if args.maestra:
@@ -1455,7 +1505,9 @@ def getReport(args,ruta=ruta):
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             m=tiempo[1]
             y=tiempo[0]
-            """
+            
+            despachoKg(session,m,y,ruta)
+            
             cooisCabeceras(session,m,y,ruta)
             cooisComponentes(session,m,y,ruta)
             cooisAdicionales(session,m,y,ruta)
@@ -1464,7 +1516,7 @@ def getReport(args,ruta=ruta):
             produccionCarnes(session,m,y,ruta)
             maestras(session,ruta)
             ksb1(session,m,y,ruta)            
-            reporteConsumos(m,y,ruta)
+            
             
             cebeC7(session,m,y,ruta)
             cebeCV(session,m,y,ruta)
@@ -1476,8 +1528,15 @@ def getReport(args,ruta=ruta):
             
             ke24(session,m,y,ruta)
             
-            despachoKg(session,m,y,ruta)
-            """
+            
+            
+            print('Cierre los exceles correspondientes')
+            x = input()
+            print('Exceles cerrados')
+
+            ejecAgg(m,y,ruta)
+            reporteConsumos(m,y,ruta)
+            
             if args.cor:
                 #Correos.correoC7()
                 #Correos.correoConsumos()

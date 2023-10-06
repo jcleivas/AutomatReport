@@ -2,12 +2,15 @@ import win32com.client as win32
 from PIL import ImageGrab
 import os
 import time
+import shutil
+from os.path import isfile, join
 
 def refreshAndSaveImage(path,fname,path_to_img,fnameImage,tipo):
     xl = win32.DispatchEx("Excel.Application")
     wb = xl.workbooks.open(path+"/"+fname)
     xl.Visible = True
     wb.RefreshAll()
+    shutil.copy(join(path, fname),join(r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Reportes Industria",fname))
     if tipo=="Cuenta7":
         ws = wb.Worksheets['Resumen STD']
 
@@ -59,89 +62,118 @@ def refreshAndSaveImage(path,fname,path_to_img,fnameImage,tipo):
         wb.Close(True)
         xl.Quit() 
     
-def correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,tipo):
+def correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,tipo, clase):
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
     mail.To = mailto
     mail.Subject = subject
     
-    if tipo=="Cuenta7":
-        att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
-        att1.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId1")
-        
-        att2=mail.Attachments.Add(path_to_img+"/" + fnameImage[2])
-        att2.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId2")
-        
-        att0=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
-        att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
-        
-        mail.HTMLBody = html.format(avanPpto,varPpto,cumpPpto*100,
-                                    "MyId1","MyId2",varMesAnt,varMesMeta, "MyId0")
-    if tipo=="Consumos":
-        
-        att0=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
-        att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
-        
-        mail.HTMLBody = html.format(varMesAnt,"MyId0")
-        
-    if tipo == "BajasDesp":
-        
-        att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
-        att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
-        mail.HTMLBody = html
-        
-    if tipo == "MDR":
-        mail.HTMLBody = html
+    if clase==1:
+        if tipo=="Cuenta7":
+
+            att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
+            att1.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId1")
+
+            att2=mail.Attachments.Add(path_to_img+"/" + fnameImage[2])
+            att2.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId2")
+
+            att0=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
+            att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
+
+            mail.HTMLBody = html.format(avanPpto,varPpto,cumpPpto*100,
+                                        "MyId1","MyId2",varMesAnt,varMesMeta, "MyId0")
+        if tipo=="Consumos":
+
+            att0=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
+            att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
+
+            mail.HTMLBody = html.format(varMesAnt,"MyId0")
+
+        if tipo == "BajasDesp":
+
+            att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
+            att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
+            mail.HTMLBody = html
+
+        if tipo == "MDR":
+            mail.HTMLBody = html
+    
+    if clase ==2:
+        if tipo=="Cuenta7":
+            mail.HTMLBody = html
+            att1=mail.Attachments.Add(path_to_img+"/" + fnameImage)
+
         
     mail.Send()
     
     
-def correoC7():
-    html="""
-    <p>Buen día equipo,<br></p>
-    <p>
-    El avance en la ejecución de la cuenta 7 es de 
-    <b>{:,.0f} MM COP</b>, con una variación frente a presupuesto de 
-    <b>{:,.0f} MM COP</span></b> (Cumplimiento: {:,.1f}%)
-    </p>
-    <p align="center">
-    <img src="cid:{}" alt="Tabla Descripción generada automáticamente">
-    </p>
-    <br>
-    <p>El cumplimiento por centro de beneficio (CEBE) es el siguiente:</p>
-    <p align="center">
-    <img src="cid:{}" alt="Tabla Descripción generada automáticamente">
-    </p>
-    <br>
-    <p>
-    La proyección líneal de la variación suponiendo un costo real similar al del mes anterior son
-    <b>{:,.0f} MM COP</b>, mientras que versus la meta planteada son
-    <b>{:,.0f} MM COP.</b>
-    </p>
-    <p align="center">
-    <img src="cid:{}" alt="Tabla Descripción generada automáticamente"></p>
-    <p>
-    <br>
-    Las visuales frente a presupuesto no contemplan los centros de beneficio de granos ni salas de desposte. El Centro de Costos de Logística OUT se encuentra filtrado también.<br>
-    El link del reporte es el siguiente: 
-    <a href="https://grupoexito-my.sharepoint.com/:x:/g/personal/jcleiva_grupo-exito_com/ET_eH6v66-1IvZ3_z2MKOo8BDtKp8_Vul_RibHzKbxKM1A"><span class=MsoSmartlink><
-    Ejecución Cuenta 7 (Lite).xlsx</span></a></p>
+def correoC7(clase):
+    if clase==1:
+        html="""
+        <p>Buen día equipo,<br></p>
+        <p>
+        El avance en la ejecución de la cuenta 7 es de 
+        <b>{:,.0f} MM COP</b>, con una variación frente a presupuesto de 
+        <b>{:,.0f} MM COP</span></b> (Cumplimiento: {:,.1f}%)
+        </p>
+        <p align="center">
+        <img src="cid:{}" alt="Tabla Descripción generada automáticamente">
+        </p>
+        <br>
+        <p>El cumplimiento por centro de beneficio (CEBE) es el siguiente:</p>
+        <p align="center">
+        <img src="cid:{}" alt="Tabla Descripción generada automáticamente">
+        </p>
+        <br>
+        <p>
+        La proyección líneal de la variación suponiendo un costo real similar al del mes anterior son
+        <b>{:,.0f} MM COP</b>, mientras que versus la meta planteada son
+        <b>{:,.0f} MM COP.</b>
+        </p>
+        <p align="center">
+        <img src="cid:{}" alt="Tabla Descripción generada automáticamente"></p>
+        <p>
+        <br>
+        Las visuales frente a presupuesto no contemplan los centros de beneficio de granos ni salas de desposte. El Centro de Costos de Logística OUT se encuentra filtrado también.<br>
+        El link del reporte es el siguiente: 
+        <a href="https://grupoexito-my.sharepoint.com/:x:/g/personal/jcleiva_grupo-exito_com/ET_eH6v66-1IvZ3_z2MKOo8BDtKp8_Vul_RibHzKbxKM1A"><span class=MsoSmartlink><
+        Ejecución Cuenta 7 (Lite).xlsx</span></a></p>
 
-    <p>Cordial saludo,
-    <br>JuanL</p>
-    </div>"""
+        <p>Cordial saludo,
+        <br>JuanL</p>
+        </div>"""
+
+        path=r"C:\Users\jcleiva\Documents\Reportes"
+        fname="Ejecución Cuenta 7 (Lite).xlsx"
+        path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"
+        fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
+        varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
+
+        mailto = 'jcleiva@Grupo-exito.com'
+        subject = 'Informe Costos de Conversión (Cuenta 7)'
+
+        correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,"Cuenta7",clase)
     
-    path=r"C:\Users\jcleiva\Documents\Reportes"
-    fname="Ejecución Cuenta 7 (Lite).xlsx"
-    path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"
-    fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
-    varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
-    
-    mailto = 'jcleiva@Grupo-exito.com'
-    subject = 'Informe Costos de Conversión (Cuenta 7)'
+    if clase==2:
+        html="""
+        <p>Buen día equipo,<br></p>
+        <p>Adjunto el informe de ejecución de los costos de conversión (Cuenta 7)</p>
 
-    correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,"Cuenta7")
+        <p>Cordial saludo,
+        <br>JuanL</p>
+        </div>"""
 
+        path=r"C:\Users\jcleiva\Documents\Reportes"
+        fname="Ejecución Cuenta 7 (Lite).xlsx"
+        path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"
+        fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
+        varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
+
+        #mailto = 'jaguirrec@Grupo-Exito.com;yospino@grupo-exito.com;rvillegasa@Grupo-Exito.com;kdelgadillo@Grupo-Exito.com;fbolanos@Grupo-Exito.com;amcorream@grupo-exito.com;scgranadar@grupo-exito.com;jgpenagosp@grupo-exito.com;jherreno@Grupo-Exito.com;jcante@Grupo-Exito.com;xalvarado@Grupo-Exito.com;cploperav@grupo-exito.com;cestepa@Grupo-Exito.com;rvillegasa@Grupo-Exito.com'
+        mailto = 'jcleiva@Grupo-exito.com'
+        subject = 'Informe Costos de Conversión (Cuenta 7)'
+
+        correo(html,mailto,subject,path,fname,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,"Cuenta7",clase)
 
 def correoConsumos():
     html= """
@@ -168,7 +200,7 @@ def correoConsumos():
     mailto = 'jcleiva@Grupo-exito.com'
     subject = 'Informe Consumos y Precios'
 
-    correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt/1000000,0,0,0,0,"Consumos")
+    correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt/1000000,0,0,0,0,"Consumos",1)
     
 
 def correoBajasDesp():
@@ -195,7 +227,7 @@ def correoBajasDesp():
     mailto = 'jcleiva@Grupo-exito.com'
     subject = 'Informe de Bajas y Despachos'
     
-    correo(html,mailto,subject,path,["Reporte de Bajas.xlsx","Informe de Despachos Industria.xlsx"],0,0,0,0,0,"BajasDesp")
+    correo(html,mailto,subject,path,["Reporte de Bajas.xlsx","Informe de Despachos Industria.xlsx"],0,0,0,0,0,"BajasDesp",1)
     
 def correoMDR():
     html= """
@@ -215,7 +247,7 @@ def correoMDR():
     path_to_img=None
     fnameImage=None
     refreshAndSaveImage(path,fname,path_to_img,fnameImage,"MDR")
-    correo(html,mailto,subject,path,None,0,0,0,0,0,"BajasDesp")
+    correo(html,mailto,subject,path,None,0,0,0,0,0,"BajasDesp",1)
     
 if __name__ == "__main__":
     correoC7()
