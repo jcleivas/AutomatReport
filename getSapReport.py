@@ -11,7 +11,6 @@ import numpy as np
 import Correos
 
 
-
 def month_year_iter( start_month, start_year, end_month, end_year ):
     ym_start= 12*start_year + start_month - 1
     ym_end= 12*end_year + end_month - 1
@@ -58,6 +57,7 @@ def parse_args():
     parser.add_argument("-tr",dest="traslado",action="store_true",help="Descarga reportes de traslados")
     parser.add_argument("-eAgg",dest="ejecAgg",action="store_true",help="Genera la ejecución de la 7 agrupada")
     parser.add_argument("-cSTD",dest="cSTD",action="store_true",help="Descarga costo estándars")
+    parser.add_argument("-cooisCab",dest="cooisCab",action="store_true",help="Descarga Cabeceras de orden")
     parser.add_argument("-cierre",dest="cierre",action="store_true",help="Genera los informes de cierre")
     parser.add_argument("-mail",dest="cor",action="store_true",help="Envia reportes por correo")
     dia=datetime.now()
@@ -435,8 +435,10 @@ def despachoKg(session,m,y,ruta):
     closeExcel(fname)
     print("{} descargado con éxito".format(fname))
     
+    aggDesp(fname,ruta+"\{}\Despachos".format(j),j,i)
     
     if datetime(j,i,16) <= datetime.now():
+        
         session.findById("wnd[0]/tbar[0]/okcd").text = "/nzsdr_ent"
         session.findById("wnd[0]").sendVKey(0)
         session.findById("wnd[0]/usr/ctxtSP$00013-LOW").text = "{:02d}.{:02d}.{}".format(16,i,j)
@@ -460,16 +462,29 @@ def despachoKg(session,m,y,ruta):
         session.findById("wnd[1]/tbar[0]/btn[0]").press()
         session.findById("wnd[1]").sendVKey(4)
         session.findById("wnd[2]/usr/ctxtDY_PATH").text = ruta+"\{}\Despachos".format(j)
-
+        
         fname="{}. Despachos 2Q.xlsx".format(i)
-
+        
         session.findById("wnd[2]/usr/ctxtDY_FILENAME").text = fname
         session.findById("wnd[2]/tbar[0]/btn[11]").press()
         session.findById("wnd[1]/tbar[0]/btn[11]").press()
         closeExcel(fname)
-
+        
         print("{} descargado con éxito".format(fname))
-    
+        aggDesp(fname,ruta+"\{}\Despachos".format(j),j,i)
+
+def aggDesp(fname,ruta,j,i):
+    df=pd.read_excel(ruta + "/" + fname,usecols=["Ce.","Peso neto"],converters={"Ce.":str})
+    df=df.groupby(["Ce."],dropna=False).sum().reset_index()
+    df=df.rename(columns={"Ce.":"Centro"})
+    if "2Q" in fname:
+        fname="/{}. Despachos 2Q (Agg).xlsx".format(i)
+    else:
+        fname="/{}. Despachos 1Q (Agg).xlsx".format(i)
+        
+    df["Fecha"]=datetime(j,i,1)
+    df.to_excel(ruta+"/{}. Despachos (Agg).xlsx".format(i),index=None)
+    print("{} Agg descargado con éxito".format(fname))
     
 def cebeCV(session,m,y,ruta):
     j=y
@@ -759,8 +774,13 @@ def ejecAgg(m,y,ruta):
     dfEj["CtoKg2"].replace([np.inf, -np.inf], 0, inplace=True)
     
     dfEj.to_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria (Agg Lite).xlsx".format(tiempo[0],tiempo[1]),index=None)
-    
     print("Ejecución Agregada generada con éxito {} {}".format(tiempo[0],tiempo[1]))
+    
+    dfEj=dfEj[["Fecha","Cuenta","Denominación Cuenta","Valor Real","Horas Reales","Variación","Centro de beneficio","Denominación CEBE","Centro","Descripción Centro"]].copy()
+    dfEj=dfEj[dfEj["Cuenta"].isin(["PP1001","PP1002"])]
+    dfEj=dfEj.groupby(["Fecha","Cuenta","Denominación Cuenta","Centro de beneficio","Denominación CEBE","Centro","Descripción Centro"],dropna=False).sum().reset_index()
+    dfEj.to_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria (Agg Lite Ultra).xlsx".format(tiempo[0],tiempo[1]),index=None)
+    print("Ejecución Agregada Ultra generada con éxito {} {}".format(tiempo[0],tiempo[1]))
 
 def ejecCEBEAgg(m,y,ruta):
     colsEjec=["Centro de beneficio","Número de cuenta","Denominación","Material","Centro","Clase mov. MM","En moneda local centro de beneficio","Cantidad"]
@@ -776,8 +796,8 @@ def ejecCEBEAgg(m,y,ruta):
            "Gasto Industria CEBE.xlsx":"Gasto",
            "Cuenta 7 Industria CEBE.xlsx":"Ejecución"}
     
-    for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
-    #for file in ["Costo de Ventas Industria CEBE.xlsx"]:
+    #for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
+    for file in ["Gasto Industria CEBE.xlsx"]:
         dfEj=pd.read_excel(ruta+"\{}\{}\{}. {}".format(tiempo[0],direc[file],tiempo[1],file),usecols=colsEjec,converters=convEjec)
         if file=="Costo de Ventas Industria CEBE.xlsx":
             cols=colsEjec+["Documento comercial"]
@@ -867,7 +887,18 @@ def ejecCEBEAgg(m,y,ruta):
             
             dfEj.to_excel(ruta+"\{}\{}\{}. {} (PLU).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5]),index=None)
             print("Archivo: "+"\{}\{}\{}. {} (PLU).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5])+" generado con éxito")
-
+        
+        if file=="Gasto Industria CEBE.xlsx":
+            
+            dfEj=dfEj[["Centro de beneficio","Número de cuenta","Centro","Importe"]].copy()
+            dfEj=dfEj.rename(columns={"Número de cuenta":"Clase de coste","Importe":"Val/Mon.so.CO"})
+            dfEj=dfEj.groupby(["Clase de coste","Centro de beneficio","Centro"],dropna=False).sum().reset_index()
+            dfEj["División"]=""
+            dfEj["Sublínea Retail"]=""
+            dfEj["Período/Año"]="{:03d}.{}".format(tiempo[1],tiempo[0])
+            
+            dfEj.to_excel(ruta+"\{}\{}\{}. {} (Lite Ultra).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5]),index=None)
+            print("Archivo: "+"\{}\{}\{}. {} (Lite Ultra).xlsx".format(tiempo[0],direc[file],tiempo[1],file[:-5])+" generado con éxito")
             
 def maestras(session,ruta):
     session.findById("wnd[0]/tbar[0]/okcd").text = "/nmm60"
@@ -937,8 +968,18 @@ def ke24(session,m,y,ruta):
 
     closeExcel(fname)    
     print("{} descargado con éxito".format(fname))
+    aggKe24(ruta+"\{}\KE24".format(y),fname,m)
+    
 
-   
+
+def aggKe24(ruta,fname,m):
+    df=pd.read_excel(ruta+"/"+fname,
+                     usecols=["Período/Año","Clase de coste","Val/Mon.so.CO","Centro de beneficio","Sublínea Retail","División","Centro"],
+                     converters={"Período/Año":str,"Clase de coste":str,"Centro de beneficio":str,"Sublínea Retail":str,"División":str,"Centro":str})
+    df=df.groupby(["Período/Año","Clase de coste","Centro de beneficio","Sublínea Retail","División","Centro"],dropna=False).sum().reset_index()
+    df.to_excel(ruta+"/"+"{}. ke24 (Agg).xlsx".format(m),index=None)
+    print("{} (Agg) generado con éxito".format(fname))
+    
 rutaM=r"C:\Users\jcleiva\Documents\Reportes Base\Maestras"
 rutaR=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes"    
 ruta=r"C:\Users\jcleiva\Documents\Reportes Base"
@@ -1392,8 +1433,14 @@ def cSTD(session,m,y,ruta):
     
 def getReport(args,ruta=ruta):
     
-    if args.consumo or args.ejec or args.ejecCEBE or args.maestra or args.mb51 or args.mb51B or args.prod or args.despachos or args.ke24 or args.traslado or args.cSTD or args.cierre:
+    if args.consumo or args.ejec or args.ejecCEBE or args.maestra or args.mb51 or args.mb51B or args.prod or args.despachos or args.ke24 or args.traslado or args.cSTD or args.cierre or args.cooisCab:
         session=sapConnection(False)
+        
+    if args.cooisCab:
+        for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
+            m=tiempo[1]
+            y=tiempo[0]
+            cooisCabeceras(session,m,y,ruta)
     if args.cSTD:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
             cSTD(session,tiempo[1],tiempo[0],ruta)
@@ -1507,6 +1554,8 @@ def getReport(args,ruta=ruta):
             y=tiempo[0]
             
             despachoKg(session,m,y,ruta)
+            bajasMB51(session,m,y,ruta)
+            ke24(session,m,y,ruta)
             
             cooisCabeceras(session,m,y,ruta)
             cooisComponentes(session,m,y,ruta)
@@ -1524,9 +1573,7 @@ def getReport(args,ruta=ruta):
             cebeGasto(session,m,y,ruta) 
             ejecCEBEAgg(m,y,ruta)
             
-            bajasMB51(session,m,y,ruta)
             
-            ke24(session,m,y,ruta)
             
             
             

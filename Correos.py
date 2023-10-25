@@ -169,8 +169,8 @@ def correoC7(clase):
         fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
         varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
 
-        #mailto = 'jaguirrec@Grupo-Exito.com;yospino@grupo-exito.com;rvillegasa@Grupo-Exito.com;kdelgadillo@Grupo-Exito.com;fbolanos@Grupo-Exito.com;amcorream@grupo-exito.com;scgranadar@grupo-exito.com;jgpenagosp@grupo-exito.com;jherreno@Grupo-Exito.com;jcante@Grupo-Exito.com;xalvarado@Grupo-Exito.com;cploperav@grupo-exito.com;cestepa@Grupo-Exito.com;rvillegasa@Grupo-Exito.com'
-        mailto = 'jcleiva@Grupo-exito.com'
+        mailto = 'jaguirrec@Grupo-Exito.com;yospino@grupo-exito.com;rvillegasa@Grupo-Exito.com;kdelgadillo@Grupo-Exito.com;fbolanos@Grupo-Exito.com;amcorream@grupo-exito.com;scgranadar@grupo-exito.com;jgpenagosp@grupo-exito.com;jherreno@Grupo-Exito.com;jcante@Grupo-Exito.com;xalvarado@Grupo-Exito.com;cploperav@grupo-exito.com;cestepa@Grupo-Exito.com;rvillegasa@Grupo-Exito.com;pparada@grupo-exito.com'
+        #mailto = 'jcleiva@Grupo-exito.com'
         subject = 'Informe Costos de Conversión (Cuenta 7)'
 
         correo(html,mailto,subject,path,fname,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,"Cuenta7",clase)
