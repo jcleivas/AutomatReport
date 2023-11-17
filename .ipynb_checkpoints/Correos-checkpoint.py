@@ -1,113 +1,117 @@
 import win32com.client as win32
 from PIL import ImageGrab
-import os
+#import os
 import time
 import shutil
 from os.path import isfile, join
 
-def refreshAndSaveImage(path,fname,path_to_img,fnameImage,tipo):
+pathD=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Reportes Industria"
+
+def refreshAndSaveImage(path,fname,path_to_img,images,values):
     xl = win32.DispatchEx("Excel.Application")
-    wb = xl.workbooks.open(path+"/"+fname)
+    wb = xl.workbooks.open(join(path,fname))
     xl.Visible = True
     wb.RefreshAll()
-    shutil.copy(join(path, fname),join(r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Reportes Industria",fname))
-    if tipo=="Cuenta7":
-        ws = wb.Worksheets['Resumen STD']
-
-        ws.Range(ws.Cells(23,2),ws.Cells(36,11)).CopyPicture(Format = 2)  
-        img = ImageGrab.grabclipboard()
-        imgFile = os.path.join(path_to_img,fnameImage[0])
-        img.save(imgFile)
-        varMesAnt=ws.Cells(36,9).value
-        varMesMeta=ws.Cells(36,11).value
-        
-        ws.Range(ws.Cells(8,14),ws.Cells(25,19)).CopyPicture(Format = 2)  
-        img = ImageGrab.grabclipboard()
-        imgFile = os.path.join(path_to_img,fnameImage[1])
-        img.save(imgFile)
-        avanPpto=ws.Cells(25,16).value
-        varPpto=ws.Cells(25,18).value
-        cumpPpto=ws.Cells(25,19).value
-        
-        ws.Range(ws.Cells(35,15),ws.Cells(51,19)).CopyPicture(Format = 2)  
-        img = ImageGrab.grabclipboard()
-        imgFile = os.path.join(path_to_img,fnameImage[2])
-        img.save(imgFile)
-        
-        time.sleep(20)
+    shutil.copy(join(path, fname),join(pathD,fname))
+    
+    for hoja in images.keys():
+        ws = wb.Worksheets[hoja]
+        for rango in images[hoja].keys():        
+            c1=images[hoja][rango][1]
+            c2=images[hoja][rango][2]
+            ws.Range(ws.Cells(c1[0],c1[1]),ws.Cells(c2[0],c2[1])).CopyPicture(Format = 2)  
+            img = ImageGrab.grabclipboard()
+            imgFile = join(path_to_img,images[hoja][rango][0])
+            img.save(imgFile)
+    
+    rdict=dict()
+    for hoja in values.keys():
+        ws = wb.Worksheets[hoja]
+        rdict[hoja]=dict()
+        for rango in values[hoja].keys():        
+            c1=values[hoja][rango][0]
+            rdict[hoja][rango]=ws.Cells(c1[0],c1[1]).value
+    
+    time.sleep(20)
+    wb.Close(True)
+    time.sleep(20)
+    xl.Quit()
+    
+    if fname=="Ejecución Cuenta 7 (Lite).xlsx":
+        xl = win32.DispatchEx("Excel.Application")
+        wb = xl.workbooks.open(join(path,"Ejecución Cuenta 7 (Lite) - Completo.xlsx"))
+        xl.Visible = True
+        wb.RefreshAll()
+        shutil.copy(join(path, fname),join(pathD,"Ejecución Cuenta 7 (Lite) - Completo.xlsx"))
         wb.Close(True)
-        time.sleep(20)
         xl.Quit()
-        return (varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto)
+    
+    return (rdict)
         
-    if tipo=="Consumos":
-        ws = wb.Worksheets['Resumen']
-
-        ws.Range(ws.Cells(6,2),ws.Cells(16,7)).CopyPicture(Format = 2)  
-        img = ImageGrab.grabclipboard()
-        imgFile = os.path.join(path_to_img,fnameImage[0])
-        img.save(imgFile)
-        varMesAnt=ws.Cells(5,7).value
-        time.sleep(20)
-        wb.Close(True)
-        time.sleep(20)
-        xl.Quit()
-        return (varMesAnt)
     
-    if tipo == "BajasDesp":
-        wb.Close(True)
-        xl.Quit()        
     
-    if tipo == "MDR":
-        wb.Close(True)
-        xl.Quit() 
-    
-def correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,tipo, clase):
+def correo(html,mailto,subject,path_to_img,images, values, files, tipo, clase):
     outlook = win32.Dispatch('outlook.application')
     mail = outlook.CreateItem(0)
     mail.To = mailto
     mail.Subject = subject
     
-    if clase==1:
-        if tipo=="Cuenta7":
-
-            att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
-            att1.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId1")
-
-            att2=mail.Attachments.Add(path_to_img+"/" + fnameImage[2])
-            att2.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId2")
-
-            att0=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
-            att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
-
-            mail.HTMLBody = html.format(avanPpto,varPpto,cumpPpto*100,
-                                        "MyId1","MyId2",varMesAnt,varMesMeta, "MyId0")
-        if tipo=="Consumos":
-
-            att0=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
-            att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
-
-            mail.HTMLBody = html.format(varMesAnt,"MyId0")
-
-        if tipo == "BajasDesp":
-
-            att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[0])
-            att1=mail.Attachments.Add(path_to_img+"/" + fnameImage[1])
-            mail.HTMLBody = html
-
-        if tipo == "MDR":
-            mail.HTMLBody = html
     
-    if clase ==2:
-        if tipo=="Cuenta7":
-            mail.HTMLBody = html
-            att1=mail.Attachments.Add(path_to_img+"/" + fnameImage)
+    if tipo=="Cuenta7":
+        contador=0
+        for hoja in images.keys():
+            for rango in images[hoja].keys():
+                att=mail.Attachments.Add(join(path_to_img, images[hoja][rango][0]))
+                att.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId{}".format(contador))
+                contador=contador+1
 
+        for file in files:
+            att=mail.Attachments.Add(join(*files[file]))
+        
+        if clase==1:
+            mail.HTMLBody = html.format(values["Resumen STD"]["avanPpto"],
+                                    values["Resumen STD"]["varPpto"],
+                                    values["Resumen STD"]["cumpPpto"]*100,
+                                    "MyId1",
+                                    "MyId2",
+                                    values["Resumen STD"]["varMesAnt"],
+                                    values["Resumen STD"]["varMesMeta"],
+                                    "MyId0")
+        if clase==2:
+            mail.HTMLBody = html
+            
+        if clase==3:
+            mail.HTMLBody = html.format(values["Proyección Variación"]["ckgAct"],
+                                    values["Proyección Variación"]["ckgProy"],
+                                    values["Proyección Variación"]["mix"],
+                                    "MyId0")
+            
+    if tipo=="Consumos":
+
+        att0=mail.Attachments.Add(join(path_to_img,fnameImage[0]))
+        att0.PropertyAccessor.SetProperty("http://schemas.microsoft.com/mapi/proptag/0x3712001F", "MyId0")
+
+        mail.HTMLBody = html.format(varMesAnt,"MyId0")
+
+    if tipo == "BajasDesp":
+
+        att1=mail.Attachments.Add(join(path_to_img, fnameImage[0]))
+        att1=mail.Attachments.Add(join(path_to_img, fnameImage[1]))
+        mail.HTMLBody = html
+
+    if tipo == "MDR":
+        mail.HTMLBody = html
         
     mail.Send()
     
     
-def correoC7(clase):
+def correoC7(clase, test):
+    
+    if test:
+        mailto = 'jcleiva@Grupo-exito.com'
+    else:
+        mailto = 'jaguirrec@Grupo-Exito.com;yospino@grupo-exito.com;rvillegasa@Grupo-Exito.com;kdelgadillo@Grupo-Exito.com;fbolanos@Grupo-Exito.com;amcorream@grupo-exito.com;scgranadar@grupo-exito.com;jgpenagosp@grupo-exito.com;jherreno@Grupo-Exito.com;jcante@Grupo-Exito.com;xalvarado@Grupo-Exito.com;cploperav@grupo-exito.com;cestepa@Grupo-Exito.com;rvillegasa@Grupo-Exito.com;pparada@grupo-exito.com;lalrodriguezs@Grupo-Exito.com;megarzon@Grupo-Exito.com;jgarciad@Grupo-Exito.com;cfdiaz@Grupo-Exito.com'
+    
     if clase==1:
         html="""
         <p>Buen día equipo,<br></p>
@@ -146,19 +150,32 @@ def correoC7(clase):
         path=r"C:\Users\jcleiva\Documents\Reportes"
         fname="Ejecución Cuenta 7 (Lite).xlsx"
         path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"
-        fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
-        varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
+        images={"Resumen STD":
+                    {"R1":["Variación Cuenta 7.jpg",(23,2),(36,11)],
+                    "R2":["Variación Ppto.jpg",(8,14),(25,19)],
+                    "R3":["Variación por CEBE.jpg",(35,15),(51,19)]}
+                   }
+        values={"Resumen STD":{
+                "varMesAnt":[(36,9)],
+                "varMesMeta":[(36,11)],
+                "avanPpto":[(25,16)],
+                "varPpto":[(25,18)],
+                "cumpPpto":[(25,19)],
+                }}
+        values=refreshAndSaveImage(path,fname,path_to_img,images,values)
 
-        mailto = 'jcleiva@Grupo-exito.com'
+        
         subject = 'Informe Costos de Conversión (Cuenta 7)'
-
-        correo(html,mailto,subject,path_to_img,fnameImage,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,"Cuenta7",clase)
+    
+        files={}
+        
+        correo(html,mailto,subject,path_to_img,images,values,files,"Cuenta7",clase)
     
     if clase==2:
         html="""
         <p>Buen día equipo,<br></p>
         <p>Adjunto el informe de ejecución de los costos de conversión (Cuenta 7)</p>
-
+        
         <p>Cordial saludo,
         <br>JuanL</p>
         </div>"""
@@ -166,14 +183,51 @@ def correoC7(clase):
         path=r"C:\Users\jcleiva\Documents\Reportes"
         fname="Ejecución Cuenta 7 (Lite).xlsx"
         path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"
-        fnameImage=['Variación Cuenta 7.jpg','Variación Ppto.jpg','Variación por CEBE.jpg']
-        varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto=refreshAndSaveImage(path,fname,path_to_img,fnameImage,"Cuenta7")
+        images={}
+        values={}
+        values=refreshAndSaveImage(path,fname,path_to_img,images,values)
 
-        mailto = 'jaguirrec@Grupo-Exito.com;yospino@grupo-exito.com;rvillegasa@Grupo-Exito.com;kdelgadillo@Grupo-Exito.com;fbolanos@Grupo-Exito.com;amcorream@grupo-exito.com;scgranadar@grupo-exito.com;jgpenagosp@grupo-exito.com;jherreno@Grupo-Exito.com;jcante@Grupo-Exito.com;xalvarado@Grupo-Exito.com;cploperav@grupo-exito.com;cestepa@Grupo-Exito.com;rvillegasa@Grupo-Exito.com;pparada@grupo-exito.com'
-        #mailto = 'jcleiva@Grupo-exito.com'
+
         subject = 'Informe Costos de Conversión (Cuenta 7)'
+        files={"File1":[path,fname]}
+        images={}
+        
+        correo(html,mailto,subject,path_to_img,images,values,files,"Cuenta7",clase)
+        
+    if clase==3:
+        html="""
+        <p>Buen día equipo,<br></p>
+        <p>Adjunto el informe de ejecución de los costos de conversión (Cuenta 7)</p>
+        <p>El costo kilo estándar actual y proyectado es {:,.0f}$/Kg y {:,.0f}$/Kg respectivamente, dejando un efecto mix por {:,.0f} MM COP entre el actual y la proyección. Los detalles se presentan a continuación: </p>
+        <p align="center">
+        <img src="cid:{}" alt="Tabla Descripción generada automáticamente"></p>
+        <p>
+        El reporte consolidado junto a años anteriores lo pueden encontrar en la ruta: 
+        <a href="https://grupoexito-my.sharepoint.com/:f:/g/personal/jcleiva_grupo-exito_com/ErmInbgWwnxFj-KtP0RnzYkBdLB0tuPxMLV8UqkWaCIvYA?e=OAKR8K">
+        <span class=MsoSmartlink>
+        Reportes Industria</span></a>
+        </p>
+        <p>Cordial saludo,
+        <br>JuanL</p>
+        </div>"""
 
-        correo(html,mailto,subject,path,fname,varMesAnt,varMesMeta,avanPpto,varPpto,cumpPpto,"Cuenta7",clase)
+        path=r"C:\Users\jcleiva\Documents\Reportes"
+        fname="Ejecución Cuenta 7 (Lite).xlsx"
+        path_to_img=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\Reportes\Imagenes"
+        images={"Proyección Variación":
+                    {"R1":["Variación Cuenta 7.jpg",(2,2),(12,13)]}}
+        values={"Proyección Variación":{
+                "ckgAct":[(12,6)],
+                "ckgProy":[(12,10)],
+                "mix":[(12,13)]
+                }}
+        values=refreshAndSaveImage(path,fname,path_to_img,images,values)
+
+        subject = 'Informe Costos de Conversión (Cuenta 7)'
+        files={"File1":[path,fname]}
+
+        correo(html,mailto,subject,path_to_img,images,values,files,"Cuenta7",clase)
+
 
 def correoConsumos():
     html= """
@@ -222,8 +276,7 @@ def correoBajasDesp():
     
     fname="Informe de Despachos Industria.xlsx"
     refreshAndSaveImage(path,fname,path_to_img,fnameImage,"BajasDesp")
-    
-    
+        
     mailto = 'jcleiva@Grupo-exito.com'
     subject = 'Informe de Bajas y Despachos'
     
@@ -252,4 +305,3 @@ def correoMDR():
 if __name__ == "__main__":
     correoC7()
     correoConsumos()
-    

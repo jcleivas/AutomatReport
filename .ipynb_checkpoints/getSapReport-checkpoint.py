@@ -60,9 +60,10 @@ def parse_args():
     parser.add_argument("-cooisCab",dest="cooisCab",action="store_true",help="Descarga Cabeceras de orden")
     parser.add_argument("-cierre",dest="cierre",action="store_true",help="Genera los informes de cierre")
     parser.add_argument("-mail",dest="cor",action="store_true",help="Envia reportes por correo")
+    parser.add_argument("-test",dest="test",action="store_true",help="Test de correo")
     dia=datetime.now()
     parser.set_defaults(consumo=False,consumoR=False, ejec=False,ejecCEBE=False,mb51=False,mb51B=False, despachos=False, maestra=False,prod=False,
-                        ke24=False,traslado=False,ejecAgg=False,cor=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
+                        ke24=False,traslado=False,ejecAgg=False,cor=False,test=False,fechas=[dia.month,dia.year,dia.month+1,dia.year])
     args=parser.parse_args()
     return args
     
@@ -528,6 +529,8 @@ def cebeCV(session,m,y,ruta):
         
         closeExcel(fname)
         print("{} descargado con éxito".format(fname))
+
+        
         
 def cebeIng(session,m,y,ruta):
     j=y
@@ -658,11 +661,11 @@ def ksb1(session,m,y,ruta):
 
 def ejecAgg(m,y,ruta):
     colsEjec=["Clase de coste","Denom.clase de coste","Centro de coste","Denominación del objeto",
-          "Material","Texto breve de material","Texto de cabecera de documento",
+          "Material","Texto breve de material","Texto de cabecera de documento","Orden partner",
           "Valor/mon.inf.","Desv.precio fija","Cantidad total"]
     convEjec={"Clase de coste":str,"Centro de coste":str,"Material":str,
               "Valor/mon.inf.":float,"Desv.precio fija":float,"Cantidad total":float,
-             "Texto de cabecera de documento":str}
+             "Texto de cabecera de documento":str,"Orden partner":str}
     tiempo=(y,m)
     dfEj=pd.read_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria.xlsx".format(tiempo[0],tiempo[1]),usecols=colsEjec,converters=convEjec)
     
@@ -674,9 +677,9 @@ def ejecAgg(m,y,ruta):
 
     dfEj["Distribución"]=dfEj["Texto de cabecera de documento"].apply(lambda x: x if x[:2]=="DR" else "")
     del dfEj["Texto de cabecera de documento"]
-
+    
     colsTemp=["Clase de coste","Denom.clase de coste","Centro de coste","Denominación del objeto",
-              "Material","Texto breve de material","Distribución"]
+              "Material","Texto breve de material","Distribución","Orden partner"]
     dfEj=dfEj.groupby(colsTemp,dropna=False).sum().reset_index()
     dfEj["Fecha"]=datetime(tiempo[0],tiempo[1],1)
     
@@ -684,8 +687,57 @@ def ejecAgg(m,y,ruta):
                         "Denominación del objeto":"Denominación Centro de Costo",
                         "Valor/mon.inf.":"Valor Real","Cantidad total":"Horas Reales",
                         "Desv.precio fija":"Variación"})
+    
+    colsCab=["Centro","Orden","Clase de orden","Planificador nec.","Número material","Texto breve material","Cantidad entregada (GMEIN)"]
+    convCab={"Centro":str,"Orden":str,"Clase de orden":str,"Número material":str,"Texto breve material":str,"Planificador nec.":str}
+    
+    dfCab=pd.read_excel(ruta+"\{}\Consumos\{}. Cabeceras de orden.xlsx".format(tiempo[0],tiempo[1]),usecols=colsCab,converters=convCab)
+    
+    dfCab=dfCab.groupby(["Centro","Orden","Clase de orden","Planificador nec.",
+                         "Número material","Texto breve material"],dropna=False).sum().reset_index()
+    dfCab=dfCab.rename(columns={"Orden":"Orden partner"})
+    
+    if dfEj.shape[0]!=dfEj.merge(dfCab,on=["Orden partner"],how="left").shape[0]:
+        raise Exception("Cabecera de orden inserta filas")
+    
+    dfEj=dfEj.merge(dfCab,on=["Orden partner"],how="left")
+    
+    del dfEj["Orden partner"]
+
+    for i in dfEj.columns:
+        if dfEj[i].dtype == "object":
+            dfEj[i].fillna("",inplace=True)
+        elif (dfEj[i].dtype == "float64") or (dfEj[i].dtype == "int64"):
+            dfEj[i].fillna(0.0,inplace=True)
+
+    
+    colsTemp1=["Fecha","Cuenta","Denominación Cuenta","Centro de coste","Denominación Centro de Costo",
+              "Material","Texto breve de material","Distribución","Centro","Clase de orden","Planificador nec.","Número material",
+               "Texto breve material"]
+    
+    dfEj=dfEj.groupby(colsTemp1,dropna=False).sum().reset_index()
+    
+    dfM=pd.read_excel(rutaM+"\Clase de orden.xlsx",
+                      usecols=["Clase de orden","Descripción Clase de orden"],
+                      converters={"Clase de orden":str})
+    
+    dfEj=dfEj.merge(dfM, on=["Clase de orden"],how="left")
+    
+    dfM=pd.read_excel(rutaM+"\Plan necesidades.xlsx",
+                      usecols=["Centro","Planificador nec.","Descripción Plan. Nec."],
+                      converters={"Centro":str,"Planificador nec.":str})
+    
+    dfEj=dfEj.merge(dfM, on=["Centro","Planificador nec."],how="left")
+    
     dfEj.to_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria (Agg).xlsx".format(tiempo[0],tiempo[1]),index=None)
 
+    del dfEj["Centro"]
+    
+    dfEj=dfEj.groupby(['Fecha', 'Cuenta', 'Denominación Cuenta', 'Centro de coste',
+                   'Denominación Centro de Costo', 'Material', 'Texto breve de material',
+                   'Distribución', 'Clase de orden', 'Planificador nec.',
+                   'Número material', 'Texto breve material', 'Descripción Clase de orden',
+                   'Descripción Plan. Nec.'],dropna=False).sum().reset_index()
     
     try:
         colsPpto=["Clase de coste","Denom.clase de coste","Centro de coste","Denominación del objeto","Valor/mon.inf.",
@@ -773,6 +825,61 @@ def ejecAgg(m,y,ruta):
     dfEj["CtoKg"].replace([np.inf, -np.inf], 0, inplace=True)
     dfEj["CtoKg2"].replace([np.inf, -np.inf], 0, inplace=True)
     
+    dfProd=pd.read_excel(ruta+"\{}\Producción\{}. Producción Carnes.xlsx".format(tiempo[0],tiempo[1]),
+             usecols=["Ce.","Cant_Kgrs","CMv","Linea","Linea Produccion","Material","Número de material"],
+            converters={"Ce.":str,"CMv":str,"Material":str})
+
+    dfProdAux=pd.read_excel(ruta+"\{}\Producción\{}. Producción.xlsx".format(tiempo[0],tiempo[1]),
+                         usecols=["Ce.","Cant_Kgrs","CMv","Linea","Linea Produccion","Material","Número de material"],
+                        converters={"Ce.":str,"CMv":str,"Material":str})
+    dfProd=pd.concat([dfProd,dfProdAux],sort=False)
+    del dfProdAux
+    dfProd["Cantidades"]=dfProd.apply(produccionCMV,axis=1)
+
+    del dfProd["Cant_Kgrs"]
+    del dfProd["CMv"]
+
+    dfProd=dfProd.rename(columns={"Linea":'Planificador nec.',
+                                  "Linea Produccion":"Descripción Plan. Nec.",
+                                  "Cantidades":'Producción (Kg)',
+                                 'Material': 'Número material',
+                                  'Número de material':'Texto breve material',
+                                 "Ce.":"Centro"})
+
+    dfProd["Fecha"]=datetime(tiempo[0],tiempo[1],1)
+
+    eCols=['Cuenta', 'Denominación Cuenta', 'Centro de coste',
+           'Denominación Centro de Costo', 'Material', 'Texto breve de material',
+           'Distribución', 'Clase de orden','Descripción Clase de orden',
+          'Tipo','Centro de beneficio', 'Denominación CEBE', 'Tipo P&G', 'Tipo P&G 2',
+           'Grupo P&G']
+
+    for cols in eCols:
+        dfProd[cols]="No aplica"
+
+    eCols=['Valor Real', 'Horas Reales', 'Variación',
+           'Cantidad entregada (GMEIN)', 'Valor Ppto',
+          'Cantidades', 'CtoKg',
+           'Cantidades2', 'CtoKg2']
+
+    for cols in eCols:
+        dfProd[cols]=0.0
+
+    dfM=pd.read_excel(rutaM+"\Centros.xlsx",
+                      usecols=["Centro","Descripción Centro"],
+                      converters={"Centro":str})
+
+    if dfProd.merge(dfM,on=["Centro"],how="left").shape[0]!=dfProd.shape[0]:
+        raise Exception("Maestra Centros inserta filas")
+
+    dfProd=dfProd.merge(dfM,on=["Centro"],how="left")
+
+    dfEj["Producción (Kg)"]=0.0
+
+    dfEj["Descripción Clase de orden"].fillna("No aplica",inplace=True)
+    dfEj["Descripción Plan. Nec."].fillna("No aplica",inplace=True)
+    dfEj=pd.concat([dfEj,dfProd])
+    
     dfEj.to_excel(ruta+"\{}\Ejecución\{}. Cuenta 7 Industria (Agg Lite).xlsx".format(tiempo[0],tiempo[1]),index=None)
     print("Ejecución Agregada generada con éxito {} {}".format(tiempo[0],tiempo[1]))
     
@@ -796,8 +903,8 @@ def ejecCEBEAgg(m,y,ruta):
            "Gasto Industria CEBE.xlsx":"Gasto",
            "Cuenta 7 Industria CEBE.xlsx":"Ejecución"}
     
-    #for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
-    for file in ["Gasto Industria CEBE.xlsx"]:
+    for file in ["Costo de Ventas Industria CEBE.xlsx","Ingreso Industria CEBE.xlsx","Gasto Industria CEBE.xlsx","Cuenta 7 Industria CEBE.xlsx"]:
+    #for file in ["Gasto Industria CEBE.xlsx"]:
         dfEj=pd.read_excel(ruta+"\{}\{}\{}. {}".format(tiempo[0],direc[file],tiempo[1],file),usecols=colsEjec,converters=convEjec)
         if file=="Costo de Ventas Industria CEBE.xlsx":
             cols=colsEjec+["Documento comercial"]
@@ -1283,8 +1390,6 @@ def reporteConsumos(m,y,ruta,rutaM=rutaM,rutaR=rutaR):
     dfComp=dfComp[~((dfComp["Receta"]==dfComp["Material"]) & (dfComp["Clase de movimiento"]=="101")& (dfComp["Clase"]=="Otras Entregas"))]
     dfComp.to_excel(rutaR+"\Consumos\{}\{}. Consumos.xlsx".format(tiempo[0],tiempo[1]),index=None)
 
-    print(tiempo)
-
     print("{} {} Consumos generados con éxito".format(y,m))
 
 def reporteTraslados(m,y,ruta,rutaD):
@@ -1468,8 +1573,8 @@ def getReport(args,ruta=ruta):
             reporteConsumos(m,y,ruta)
             
             if args.cor:
-                Correos.correoC7(2)
-                Correos.correoConsumos()
+                Correos.correoC7(3,args.test)
+                #Correos.correoConsumos()
     
     if args.consumoR:
         for tiempo in month_year_iter(int(args.fechas[0]),int(args.fechas[1]),int(args.fechas[2]),int(args.fechas[3])):
@@ -1584,10 +1689,10 @@ def getReport(args,ruta=ruta):
             ejecAgg(m,y,ruta)
             reporteConsumos(m,y,ruta)
             
-            if args.cor:
+            #if args.cor:
                 #Correos.correoC7()
                 #Correos.correoConsumos()
-                Correos.correoBajasDesp()
+                #Correos.correoBajasDesp()
                 
             
             

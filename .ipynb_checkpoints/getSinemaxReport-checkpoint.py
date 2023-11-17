@@ -856,16 +856,17 @@ def getReportSinemax(args):
         path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
         mypathD=r"C:\Users\jcleiva\Downloads"
         mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\PDL"
-        service = Service(executable_path=path)
+        #service = Service(executable_path=path)
         options = webdriver.ChromeOptions()
-        driver = webdriver.Chrome(service=service, options=options)
-
+        #driver = webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Chrome(executable_path=path, options=options)
+        
         driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
 
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Tebi.1030611534")
+        psw.send_keys("Jesi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -879,16 +880,17 @@ def getReportSinemax(args):
         path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
         mypathD=r"C:\Users\jcleiva\Downloads"
         mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\Despachos"
-        service = Service(executable_path=path)
+        #service = Service(executable_path=path)
         options = webdriver.ChromeOptions()
-        driver = webdriver.Chrome(service=service, options=options)
+        #driver = webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Chrome(executable_path=path, options=options)
 
         driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
 
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Tebi.1030611534")
+        psw.send_keys("Jesi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -902,16 +904,17 @@ def getReportSinemax(args):
         path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
         mypathD=r"C:\Users\jcleiva\Downloads"
         mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\Ingresos"
-        service = Service(executable_path=path)
+        #service = Service(executable_path=path)
         options = webdriver.ChromeOptions()
-        driver = webdriver.Chrome(service=service, options=options)
+        #driver = webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Chrome(executable_path=path, options=options)
 
         driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
 
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Tebi.1030611534")
+        psw.send_keys("Jesi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -930,16 +933,17 @@ def getReportSinemax(args):
         path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
         mypathD=r"C:\Users\jcleiva\Downloads"
         mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\PDL"
-        service = Service(executable_path=path)
+        #service = Service(executable_path=path)
         options = webdriver.ChromeOptions()
-        driver = webdriver.Chrome(service=service, options=options)
+        #driver = webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Chrome(executable_path=path, options=options)
 
         driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
 
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Tebi.1030611534")
+        psw.send_keys("Jesi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -952,16 +956,17 @@ def getReportSinemax(args):
         path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
         mypathD=r"C:\Users\jcleiva\Downloads"
         mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\Despachos"
-        service = Service(executable_path=path)
+        #service = Service(executable_path=path)
         options = webdriver.ChromeOptions()
-        driver = webdriver.Chrome(service=service, options=options)
+        #driver = webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Chrome(executable_path=path, options=options)
 
         driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
 
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Tebi.1030611534")
+        psw.send_keys("Jesi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
@@ -974,16 +979,17 @@ def getReportSinemax(args):
         path=r"C:\Users\jcleiva\OneDrive - Grupo-exito.com\Escritorio\Proyectos\AutomatizacionExito\chromedriver_win32\chromedriver.exe"
         mypathD=r"C:\Users\jcleiva\Downloads"
         mypathPDL=r"C:\Users\jcleiva\Documents\Reportes Base\{}\P&G\Ingresos"
-        service = Service(executable_path=path)
+        #service = Service(executable_path=path)
         options = webdriver.ChromeOptions()
-        driver = webdriver.Chrome(service=service, options=options)
+        #driver = webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Chrome(executable_path=path, options=options)
 
         driver.get("https://pasarela.grupo-exito.com/MicroStrategy/servlet/mstrWeb?evt=3001&src=mstrWeb.3001&Port=0&")
 
         usr=driver.find_element(By.XPATH,'//*[@id="Uid"]')
         usr.send_keys("jcleiva")
         psw=driver.find_element(By.XPATH,'//*[@id="Pwd"]')
-        psw.send_keys("Tebi.1030611534")
+        psw.send_keys("Jesi.1030611534")
 
         driver.find_element(By.XPATH,'//*[@id="3054"]').click()
         driver.find_element(By.XPATH,'//*[@id="projects_ProjectsStyle"]/table/tbody/tr/td[1]/div/table/tbody/tr/td[2]/a').click()
